@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Outlet } from 'react-router'
+import { Outlet, useLocation } from 'react-router'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useMenuMotion } from '../ui/motion'
+import { useMenuMotion, useSignInMotion } from '../ui/motion'
 import { SideNav } from './SideNav'
 
 // Three bars that turn into a cross while the menu is open.
@@ -20,6 +20,10 @@ export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const motionVariants = useMenuMotion()
+  const location = useLocation()
+  const signIn = useSignInMotion()
+  // Only the first page after a successful sign-in rises in; later page changes stay as they are.
+  const arrived = (location.state as { arrived?: boolean } | null)?.arrived === true
 
   // Escape closes the mobile menu and gives focus back to its button.
   useEffect(() => {
@@ -84,7 +88,13 @@ export function AppShell() {
       </aside>
 
       <div className="min-w-0 flex-1 overflow-x-hidden pt-14 md:h-screen md:overflow-y-auto md:pt-0">
-        <Outlet />
+        <motion.div
+          initial={arrived ? signIn.arrive.initial : false}
+          animate={signIn.arrive.animate}
+          transition={signIn.arrive.transition}
+        >
+          <Outlet />
+        </motion.div>
       </div>
     </div>
   )

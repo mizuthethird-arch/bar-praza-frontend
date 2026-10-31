@@ -1,4 +1,4 @@
-import { useReducedMotion, type Transition, type Variants } from 'framer-motion'
+import { useReducedMotion, type Target, type Transition, type Variants } from 'framer-motion'
 
 export const staggerContainer: Variants = {
   hidden: {},
@@ -176,4 +176,44 @@ export function lockMotion(reduced: boolean): LockMotion {
 
 export function useLockMotion() {
   return lockMotion(useReducedMotion() ?? false)
+}
+
+type SignInMotion = {
+  // How long the card takes to leave before the app opens; the app waits this long.
+  leaveMs: number
+  leave: { animate: Target; transition: Transition }
+  arrive: { initial: Target; animate: Target; transition: Transition }
+}
+
+const SIGN_IN_OUT_MS = 450
+const SIGN_IN_OUT: Transition = { duration: SIGN_IN_OUT_MS / 1000, ease: [0.65, 0, 0.35, 1] }
+const SIGN_IN_IN: Transition = { duration: 0.6, ease: [0.32, 0.72, 0, 1] }
+
+// A successful sign-in: the card fades, drifts up and blurs out, then the dashboard rises into place.
+// Reduced motion switches at once.
+export function signInMotion(reduced: boolean): SignInMotion {
+  if (reduced) {
+    const still = { opacity: 1, y: 0, scale: 1 }
+    return {
+      leaveMs: 0,
+      leave: { animate: { opacity: 0 }, transition: INSTANT },
+      arrive: { initial: still, animate: still, transition: INSTANT },
+    }
+  }
+  return {
+    leaveMs: SIGN_IN_OUT_MS,
+    leave: {
+      animate: { opacity: 0, y: -16, scale: 0.97, filter: 'blur(6px)' },
+      transition: SIGN_IN_OUT,
+    },
+    arrive: {
+      initial: { opacity: 0, y: 20, scale: 0.99 },
+      animate: { opacity: 1, y: 0, scale: 1 },
+      transition: SIGN_IN_IN,
+    },
+  }
+}
+
+export function useSignInMotion() {
+  return signInMotion(useReducedMotion() ?? false)
 }

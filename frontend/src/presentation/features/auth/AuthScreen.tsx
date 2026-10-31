@@ -1,9 +1,10 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import type { Credentials } from '../../../domain/auth/credentials'
 import { useHasSession } from '../../app/use-has-session'
 import { useServices } from '../../app/use-services'
-import { useAuthMotion } from '../../ui/motion'
+import { useAuthMotion, useSignInMotion } from '../../ui/motion'
 import { AuthFrame } from './AuthFrame'
 import { LoginForm } from './LoginForm'
 import { PinPad } from './PinPad'
@@ -25,15 +26,20 @@ export function AuthScreen() {
   const from = (location.state as { from?: string } | null)?.from ?? '/'
   const pinView = location.pathname === '/login/pin'
   const { view } = useAuthMotion()
+  const signIn = useSignInMotion()
   const signedIn = useHasSession()
+  const [leaving, setLeaving] = useState(false)
 
+  // The card leaves before the app opens; the app then tells its first page to rise in.
   async function handleLogin(credentials: Credentials) {
     try {
       await login(credentials)
     } catch (error) {
       throw new Error(loginErrorMessage(error))
     }
-    navigate(from, { replace: true })
+    setLeaving(true)
+    await new Promise((resolve) => setTimeout(resolve, signIn.leaveMs))
+    navigate(from, { replace: true, state: { arrived: true } })
   }
 
   if (signedIn === null) return null
@@ -47,7 +53,11 @@ export function AuthScreen() {
 
   return (
     <AuthFrame>
-      <div className="grid">
+      <motion.div
+        className="grid"
+        animate={leaving ? signIn.leave.animate : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+        transition={signIn.leave.transition}
+      >
         <motion.div
           className={`${STACK} ${pinView ? 'invisible' : 'visible'}`}
           aria-hidden={pinView}
@@ -77,7 +87,7 @@ export function AuthScreen() {
             />
           </motion.div>
         )}
-      </div>
+      </motion.div>
     </AuthFrame>
   )
 }
