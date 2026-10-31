@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMenuMotion, useSignInMotion } from '../ui/motion'
+import { justSignedIn } from '../app/just-signed-in'
 import { SideNav } from './SideNav'
 
 // Three bars that turn into a cross while the menu is open.
@@ -23,7 +24,7 @@ export function AppShell() {
   const location = useLocation()
   const signIn = useSignInMotion()
   // Only the first page after a successful sign-in rises in; later page changes stay as they are.
-  const arrived = (location.state as { arrived?: boolean } | null)?.arrived === true
+  const arrived = justSignedIn(location.state)
 
   // Escape closes the mobile menu and gives focus back to its button.
   useEffect(() => {
@@ -82,10 +83,15 @@ export function AppShell() {
         )}
       </AnimatePresence>
 
-      <aside className="hidden min-w-0 bg-neutral-900 p-6 md:block md:h-screen md:w-60 md:shrink-0 md:overflow-y-auto md:border-r md:border-neutral-800">
+      <motion.aside
+        initial={arrived ? signIn.arrive.initial : false}
+        animate={signIn.arrive.animate}
+        transition={signIn.arrive.transition}
+        className="hidden min-w-0 bg-neutral-900 p-6 md:block md:h-screen md:w-60 md:shrink-0 md:overflow-y-auto md:border-r md:border-neutral-800"
+      >
         <p className="px-3 pb-6 text-base font-bold">Bar Praza</p>
         <SideNav />
-      </aside>
+      </motion.aside>
 
       <div className="min-w-0 flex-1 overflow-x-hidden pt-14 md:h-screen md:overflow-y-auto md:pt-0">
         <motion.div

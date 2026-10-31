@@ -185,15 +185,15 @@ type SignInMotion = {
   arrive: { initial: Target; animate: Target; transition: Transition }
 }
 
-const SIGN_IN_OUT_MS = 450
+const SIGN_IN_OUT_MS = 400
 const SIGN_IN_OUT: Transition = { duration: SIGN_IN_OUT_MS / 1000, ease: [0.65, 0, 0.35, 1] }
-const SIGN_IN_IN: Transition = { duration: 0.6, ease: [0.32, 0.72, 0, 1] }
+const SIGN_IN_IN: Transition = { duration: 0.7, ease: [0.32, 0.72, 0, 1] }
 
 // A successful sign-in: the card fades, drifts up and blurs out, then the dashboard rises into place.
 // Reduced motion switches at once.
 export function signInMotion(reduced: boolean): SignInMotion {
   if (reduced) {
-    const still = { opacity: 1, y: 0, scale: 1 }
+    const still = { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }
     return {
       leaveMs: 0,
       leave: { animate: { opacity: 0 }, transition: INSTANT },
@@ -207,8 +207,8 @@ export function signInMotion(reduced: boolean): SignInMotion {
       transition: SIGN_IN_OUT,
     },
     arrive: {
-      initial: { opacity: 0, y: 20, scale: 0.99 },
-      animate: { opacity: 1, y: 0, scale: 1 },
+      initial: { opacity: 0, y: 32, scale: 0.98, filter: 'blur(8px)' },
+      animate: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' },
       transition: SIGN_IN_IN,
     },
   }
