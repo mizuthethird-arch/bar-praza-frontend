@@ -1,0 +1,16 @@
+scopes:
+  hard:     { rank: 0, overridable: false }
+  global:   { rank: 1, overridable: true }
+  client:   { rank: 2, overridable: true }
+  project:  { rank: 3, overridable: true }
+  role:     { rank: 4, overridable: true }
+  task:     { rank: 5, overridable: true }
+
+resolution_order:
+  1: scope_rank
+  2: specificity
+  3: explicit_over_implicit
+  4: supersedes_chain
+  5: escalate_to_human
+
+# Kai may create role and task rules; hard, client and global are human only.
