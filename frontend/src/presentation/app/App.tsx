@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { KitchenPage } from '../features/kitchen/KitchenPage'
 import { LiveConsolePage } from '../features/live/LiveConsolePage'
-import { LoginScreen } from '../features/auth/LoginScreen'
+import { AuthScreen } from '../features/auth/AuthScreen'
 import { CatalogPage } from '../features/catalog/CatalogPage'
 import { CustomersPage } from '../features/customers/CustomersPage'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
@@ -16,7 +16,7 @@ import { AppShell } from '../layout/AppShell'
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginScreen />} />
+      <Route path="/login/*" element={<AuthScreen />} />
       <Route element={<RequireSession />}>
         <Route element={<AppShell />}>
           <Route index element={<DashboardPage />} />

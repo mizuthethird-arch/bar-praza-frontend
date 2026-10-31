@@ -103,6 +103,9 @@ Values in code (`sheetMotion`): overlay `duration 0.2`; sheet hidden `y: 100%`, 
 
 Respect the user's setting: every motion value goes through `useReducedMotion`. Do not add motion without a verdict.
 
+- Sign-in card (`authMotion` in `motion.ts`): switching between the email login and the PIN view slides the view 24 px (in 0.28 s, out 0.2 s) and does not wait for the other to leave. A notice (wrong email or password, wrong PIN) opens by growing from zero height (0.3 s), so the card reflows smoothly. Reduced motion switches at once. (2026-10-31)
+- Fonts: Fraunces 500/600 (titles) and Instrument Sans 400/600 (text), from Google Fonts in `index.html`. (2026-10-31)
+
 ## 9. Pop-ups and overlays
 
 - Overlay: `fixed inset-0 z-50 bg-black/70`. Sheet at the bottom on phones (`items-end`); centred from `md` (`md:items-center md:p-4`).

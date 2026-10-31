@@ -28,7 +28,7 @@ Source of truth in the code:
    be bypassed.
 4. **Money is in integer cents** (`priceCents`, `totalCents`, `salesCents`). Never floats.
 5. **Errors.** Today the screens show one generic message per action ("No se pudo …") for any
-   failure. Only login tells errors apart (see 2). Proposal for the backend:
+   failure. Only login and the PIN unlock tell errors apart (see 2). Proposal for the backend:
    `400` for invalid input, `401` for no or expired session, `404` for an unknown id, `409` for a
    broken rule (for example, removing the last active owner).
 
@@ -40,9 +40,34 @@ Source of truth in the code:
 | `logout` | none | nothing | Ends the session. |
 | `hasSession` | none | boolean | Used by the route guard. The mock keeps it in sessionStorage, so it survives a reload. |
 
+### PIN unlock (`/login/pin`)
+
+The PIN unlocks the panel on the device that remembers the person. It does not replace the
+password: it only starts a session again on a device that has been used before.
+
+| Operation | Input | Output | Rules / errors |
+|---|---|---|---|
+| `getRememberedDevice` | none | `RememberedDevice` `{ name, initials, email, device }` | Shown above the keypad. The keypad works before this answer arrives. |
+| `unlockWithPin` | `{ pin }` | `PinResult`: `ok`, `wrong` with `attemptsLeft`, or `locked` | Only `ok` starts a session; the screen then goes to the page the person asked for. |
+
+Server rules:
+
+1. The PIN is exactly 4 digits (`PIN_LENGTH`). The screen only sends complete PINs, but the server
+   must reject anything else (`400`).
+2. A wrong PIN answers `wrong` with the attempts left. The screen says "Te quedan N intentos" or,
+   for the last one, "Te queda 1 intento".
+3. After 3 wrong attempts (`maxAttempts` in the mock) the answer is `locked`. While locked, every
+   call answers `locked`, even with the right PIN. The screen then shows "Acceso bloqueado" and
+   offers the email and password login.
+4. Any other failure (network, `500`) shows the generic "No se pudo entrar. Inténtalo de nuevo."
+   The server must not count such a failure as an attempt.
+5. The mock's demo PIN is `1234` and its lock lasts until a reload. The real lock rules are open.
+
 Open, owned elsewhere:
 
-- ISS-4: session length and logout rules (user).
+- ISS-4: session length and logout rules (user). It also covers how long the PIN lock lasts.
+- WP-1: how the PIN is set for each person, and how a device is remembered. The "Recordar este
+  dispositivo 30 días" checkbox on the email login sends nothing yet.
 - WP-1.5: the login endpoint itself (backend).
 - How the session is carried (cookie or token) is the tech lead's decision. The frontend only
   needs `hasSession()` to answer without a network round trip, or a "check session" call at start.
@@ -134,3 +159,5 @@ invitation?) is open, for the user and the tech lead.
 4. Invitations versus `addMember` (see the note under Team).
 5. Routes, versioning and error body format: the tech lead decides. The proposal in this
    document is only a starting point.
+6. PIN unlock: how the PIN is set and stored per person, how a device is remembered, and how long
+   the lock lasts (and who can clear it before that).

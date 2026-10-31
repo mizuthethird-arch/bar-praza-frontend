@@ -35,6 +35,20 @@ and after logging in you land on the page you asked for.
 - All three roles see the same pages today. Pages by role are not built.
 - `.test` is a reserved domain that never delivers mail.
 
+## Unlock with PIN (`/login/pin`)
+
+From the login, "Desbloquear con PIN" opens the PIN screen for the device that remembers this person.
+From `mock-pin-gateway.ts`:
+
+- The remembered device is `[Titular]` on `TABLET BARRA`. The demo PIN is `1234`.
+- Any other PIN counts as a failed attempt. There are 3 attempts: after the first two you see how many are left.
+- The third wrong PIN locks the access ("Acceso bloqueado"). The lock lasts until you reload the page, so
+  a reload brings the attempts back.
+- "No soy yo · Entrar con email" and "Entrar con email y contraseña" go back to the email login.
+- Physical digit keys and Backspace work too.
+
+The real lock time and the real PIN rules are not decided yet (open in the backend work).
+
 ## Data by screen
 
 ### Resumen (`/`)
@@ -185,6 +199,7 @@ From `mock-live-events-repository.ts`: a scripted evening of 8 events.
 | `memory-store.ts` | The in-memory "server" copy. It applies each command to the latest state. |
 | `mock-accounts.ts` | The demo logins above. |
 | `mock-auth-gateway.ts` | Checks the logins, with the 500 ms delay. |
+| `mock-pin-gateway.ts` | The remembered device, the demo PIN and the attempts before the lock. |
 | `mock-session-store.ts` | The session flag, kept in `sessionStorage` by the app. |
 | `mock-orders-repository.ts` | Today's orders for Resumen. |
 | `mock-menu-repository.ts` | The dishes for Resumen. |
