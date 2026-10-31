@@ -1,0 +1,12 @@
+{
+  "name": "Bar Praza frontend",
+  "dockerComposeFile": ["../frontend/compose.yaml"],
+  "service": "app",
+  "workspaceFolder": "/app",
+  "forwardPorts": [5173],
+  "customizations": {
+    "vscode": {
+      "extensions": ["bradlc.vscode-tailwindcss", "vitest.explorer"]
+    }
+  }
+}
