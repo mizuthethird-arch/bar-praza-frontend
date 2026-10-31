@@ -10,9 +10,16 @@ import type { StockMovement, StockState } from '../domain/stock/stock'
 import type { Dish } from '../domain/menu/dish'
 import type { Order } from '../domain/orders/order'
 import type { ScheduleOverview, SpecialClosure } from '../domain/schedule/schedule'
+import type { PinResult } from '../domain/auth/pin'
+import type { RememberedDevice } from '../domain/auth/remembered-device'
 
 export interface AuthGateway {
   login(credentials: Credentials): Promise<void>
+}
+
+export interface PinGateway {
+  rememberedDevice(): Promise<RememberedDevice>
+  unlock(pin: string): Promise<PinResult>
 }
 
 export interface SessionStore {

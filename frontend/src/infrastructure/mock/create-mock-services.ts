@@ -3,6 +3,7 @@ import { archiveProductIn, getCatalog, saveProductIn } from '../../application/c
 import { getDashboard } from '../../application/get-dashboard'
 import { getScheduleOverview } from '../../application/get-schedule-overview'
 import { login, logout } from '../../application/login'
+import { getRememberedDevice, unlockWithPin } from '../../application/pin-unlock'
 import { cancelOrderIn, listOrderLog } from '../../application/order-log'
 import { addMemberTo, getTeam, removeMemberFrom, saveSettingsIn, setMemberActiveIn } from '../../application/manage-team'
 import {
@@ -23,6 +24,7 @@ import { createMockLiveEventsRepository } from './mock-live-events-repository'
 import { createMockMenuRepository } from './mock-menu-repository'
 import { createMockOrderLogRepository } from './mock-order-log-repository'
 import { createMockOrdersRepository } from './mock-orders-repository'
+import { createMockPinGateway } from './mock-pin-gateway'
 import { createMockReportsRepository } from './mock-reports-repository'
 import { createMockSessionStore } from './mock-session-store'
 import { createMockScheduleRepository } from './mock-schedule-repository'
@@ -40,6 +42,7 @@ type Options = {
 export function createMockServices({ loginDelayMs, signedIn = false, storage }: Options = {}): AppServices {
   const auth = createMockAuthGateway({ delayMs: loginDelayMs })
   const session = createMockSessionStore({ active: signedIn, storage })
+  const pin = createMockPinGateway()
   const orders = createMockOrdersRepository()
   const menu = createMockMenuRepository()
   const schedule = createMockScheduleRepository()
@@ -56,6 +59,8 @@ export function createMockServices({ loginDelayMs, signedIn = false, storage }: 
     login: (credentials) => login(auth, session, credentials),
     logout: () => logout(session),
     hasSession: () => session.isActive(),
+    getRememberedDevice: () => getRememberedDevice(pin),
+    unlockWithPin: (code) => unlockWithPin(pin, session, code),
     getDashboard: () => getDashboard({ orders, menu, schedule }),
     getScheduleOverview: () => getScheduleOverview(schedule),
     pauseOrders: (minutes) => pauseOrdersIn(schedule, minutes),

@@ -1,5 +1,24 @@
 @import 'tailwindcss';
 
+/* Dark tokens from the guide (ds/bar-praza/tokens.json, starter system V1). The light values are
+   not used yet: the production light theme is still to be designed. Fraunces and Instrument Sans
+   are loaded from Google Fonts in index.html. */
+@theme {
+  --color-surface: #1b1916;
+  --color-surface-raised: #252220;
+  --color-line: #3a3530;
+  --color-ink: #f2ece2;
+  --color-ink-muted: #b5aa9c;
+  --color-tella: #ec8a69;
+  --color-tella-soft: #43201a;
+  --color-on-tella: #1b1916;
+  --color-lousa: #93b6c9;
+  --color-albarino: #b5d07a;
+  --color-albarino-soft: #26340f;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
 @layer base {
   :focus-visible {
     outline: 2px solid var(--color-neutral-100);

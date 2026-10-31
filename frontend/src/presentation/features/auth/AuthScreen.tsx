@@ -1,0 +1,68 @@
+import { motion } from 'framer-motion'
+import { Navigate, useLocation, useNavigate } from 'react-router'
+import type { Credentials } from '../../../domain/auth/credentials'
+import { useServices } from '../../app/use-services'
+import { useAuthMotion } from '../../ui/motion'
+import { AuthFrame } from './AuthFrame'
+import { LoginForm } from './LoginForm'
+import { PinPad } from './PinPad'
+import { loginErrorMessage } from './login-error-message'
+
+// Both views are stacked in one grid cell, so the card is as tall as the taller of them and the
+// email login and the PIN view have the same height. The hidden one stays out of the way.
+// CSS flips visibility at the start of a show and at the end of a hide, so the entering view is
+// never late and the leaving one fades out before it disappears.
+const STACK = 'col-start-1 row-start-1 transition-[visibility] duration-[280ms] motion-reduce:transition-none'
+
+// One screen for the email login (/login) and the PIN unlock (/login/pin): the card stays mounted,
+// so switching between them is a motion, not a page change.
+export function AuthScreen() {
+  const { login, hasSession } = useServices()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from ?? '/'
+  const pinView = location.pathname === '/login/pin'
+  const { view } = useAuthMotion()
+
+  async function handleLogin(credentials: Credentials) {
+    try {
+      await login(credentials)
+    } catch (error) {
+      throw new Error(loginErrorMessage(error))
+    }
+    navigate(from, { replace: true })
+  }
+
+  if (hasSession()) return <Navigate to={from} replace />
+
+  const shown = { opacity: 1, x: 0, transition: view.transition }
+  // The email view leaves to the left and the PIN view comes in from the right, and back.
+  const emailHidden = { opacity: 0, x: -24, transition: view.transition }
+  const pinHidden = { opacity: 0, x: 24, transition: view.transition }
+
+  return (
+    <AuthFrame>
+      <div className="grid">
+        <motion.div
+          className={`${STACK} ${pinView ? 'invisible' : 'visible'}`}
+          aria-hidden={pinView}
+          inert={pinView}
+          initial={false}
+          animate={pinView ? emailHidden : shown}
+        >
+          <LoginForm onSubmit={handleLogin} onPin={() => navigate('/login/pin', { state: { from } })} />
+        </motion.div>
+
+        <motion.div
+          className={`${STACK} ${pinView ? 'visible' : 'invisible'}`}
+          aria-hidden={!pinView}
+          inert={!pinView}
+          initial={false}
+          animate={pinView ? shown : pinHidden}
+        >
+          <PinPad active={pinView} from={from} onEmail={() => navigate('/login', { replace: true })} />
+        </motion.div>
+      </div>
+    </AuthFrame>
+  )
+}

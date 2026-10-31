@@ -7,6 +7,8 @@ import type { Report } from '../domain/reports/report'
 import type { StockMovement, StockState } from '../domain/stock/stock'
 import type { BarSettings, Role, TeamState } from '../domain/team/team'
 import type { Credentials } from '../domain/auth/credentials'
+import type { PinResult } from '../domain/auth/pin'
+import type { RememberedDevice } from '../domain/auth/remembered-device'
 import type { Dashboard } from './get-dashboard'
 import type { ScheduleOverview, SpecialClosure } from '../domain/schedule/schedule'
 
@@ -15,6 +17,8 @@ export interface AppServices {
   login(credentials: Credentials): Promise<void>
   logout(): void
   hasSession(): boolean
+  getRememberedDevice(): Promise<RememberedDevice>
+  unlockWithPin(pin: string): Promise<PinResult>
   getDashboard(): Promise<Dashboard>
   getScheduleOverview(): Promise<ScheduleOverview>
   pauseOrders(minutes: number): Promise<ScheduleOverview>
