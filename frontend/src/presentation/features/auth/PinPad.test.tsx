@@ -19,7 +19,7 @@ describe('PIN unlock screen (/login/pin)', () => {
   it('shows the keypad at once after pressing "Desbloquear con PIN", without waiting for the device', async () => {
     renderApp('/login', {}, { signedIn: false })
 
-    await userEvent.click(screen.getByRole('button', { name: 'Desbloquear con PIN' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Desbloquear con PIN' }))
 
     expect(screen.getByRole('status', { name: 'PIN, 0 de 4 cifras' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '1' })).toBeEnabled()
@@ -105,8 +105,9 @@ describe('PIN unlock screen (/login/pin)', () => {
     expect(screen.getByRole('button', { name: '1' })).toBeEnabled()
   })
 
-  it('keeps the PIN view out of the accessibility tree while the email login is shown', () => {
+  it('keeps the PIN view out of the accessibility tree while the email login is shown', async () => {
     renderApp('/login', {}, { signedIn: false })
+    await screen.findByRole('form', { name: /entrar al panel/i })
 
     expect(screen.queryByRole('status', { name: 'PIN, 0 de 4 cifras' })).not.toBeInTheDocument()
   })
@@ -114,7 +115,7 @@ describe('PIN unlock screen (/login/pin)', () => {
   it('does not read digits typed in the email field as a PIN', async () => {
     renderApp('/login', {}, { signedIn: false })
 
-    await userEvent.type(screen.getByLabelText(/email/i), '1234')
+    await userEvent.type(await screen.findByLabelText(/email/i), '1234')
 
     expect(screen.getByRole('form', { name: 'Entrar al panel' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Hoy en la praza' })).not.toBeInTheDocument()

@@ -274,10 +274,10 @@ describe('KitchenPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar')
   })
 
-  it('is behind the login', () => {
+  it('is behind the login', async () => {
     renderApp('/cocina', {}, { signedIn: false })
 
-    expect(screen.getByRole('form', { name: /entrar al panel/i })).toBeInTheDocument()
+    expect(await screen.findByRole('form', { name: /entrar al panel/i })).toBeInTheDocument()
   })
 
   it('keeps the sidebar of the app', async () => {

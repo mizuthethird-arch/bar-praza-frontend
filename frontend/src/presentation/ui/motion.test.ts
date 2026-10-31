@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { authMotion, lockMotion, menuMotion, shouldDismiss, sheetMotion } from './motion'
+import { authMotion, lockMotion, menuMotion, shouldDismiss, sheetMotion, signInMotion } from './motion'
 
 describe('sheetMotion', () => {
   it('slides the sheet up on a spring and fades the overlay in over 0.2 s', () => {
@@ -142,5 +142,33 @@ describe('lockMotion', () => {
     expect(panel.transition).toEqual({ duration: 0 })
     expect(icon.animate).toMatchObject({ scale: 1, rotate: 0 })
     expect(icon.transition).toEqual({ duration: 0 })
+  })
+})
+
+describe('signInMotion', () => {
+  it('fades the card out, drifts it up and blurs it over 0.4 s before the app opens', () => {
+    const { leave, leaveMs } = signInMotion(false)
+
+    expect(leaveMs).toBe(400)
+    expect(leave.animate).toMatchObject({ opacity: 0, y: -16, scale: 0.97, filter: 'blur(6px)' })
+    expect(leave.transition).toMatchObject({ duration: 0.4 })
+  })
+
+  it('rises the dashboard in from below, slightly small and out of focus, over 0.7 s', () => {
+    const { arrive } = signInMotion(false)
+
+    expect(arrive.initial).toMatchObject({ opacity: 0, y: 32, scale: 0.98, filter: 'blur(8px)' })
+    expect(arrive.animate).toMatchObject({ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' })
+    expect(arrive.transition).toMatchObject({ duration: 0.7 })
+  })
+
+  it('switches at once, with no wait and no movement, when the user asks for reduced motion', () => {
+    const { leaveMs, leave, arrive } = signInMotion(true)
+
+    expect(leaveMs).toBe(0)
+    expect(leave.animate).toEqual({ opacity: 0 })
+    expect(leave.transition).toEqual({ duration: 0 })
+    expect(arrive.initial).toMatchObject({ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' })
+    expect(arrive.transition).toEqual({ duration: 0 })
   })
 })

@@ -2,7 +2,7 @@ import { addClosureTo, pauseOrdersIn, removeClosureFrom, resumeOrdersIn } from '
 import { archiveProductIn, getCatalog, saveProductIn } from '../../application/catalog'
 import { getDashboard } from '../../application/get-dashboard'
 import { getScheduleOverview } from '../../application/get-schedule-overview'
-import { login, logout } from '../../application/login'
+import { isSignedIn, login, logout } from '../../application/login'
 import { getRememberedDevice, unlockWithPin } from '../../application/pin-unlock'
 import { cancelOrderIn, listOrderLog } from '../../application/order-log'
 import { addMemberTo, getTeam, removeMemberFrom, saveSettingsIn, setMemberActiveIn } from '../../application/manage-team'
@@ -16,6 +16,7 @@ import {
 import { listLiveEvents, pollLiveEvents } from '../../application/live-console'
 import { getStock, recordMovementIn } from '../../application/stock'
 import type { AppServices } from '../../application/services'
+import type { AuthGateway } from '../../application/ports'
 import { createMockAuthGateway } from './mock-auth-gateway'
 import { createMockCatalogRepository } from './mock-catalog-repository'
 import { createMockCustomersRepository } from './mock-customers-repository'
@@ -36,12 +37,15 @@ type Options = {
   signedIn?: boolean
   // Where the mock session is kept; the app passes sessionStorage so a reload keeps you signed in.
   storage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
+  // The real login (HTTP). When given, it replaces the mock login and the PIN unlock is left out,
+  // because the backend does not have it yet. The other screens stay on the mock until they are built.
+  auth?: AuthGateway
 }
 
-// Composition root for the mock backend. A real one would build HTTP adapters here.
-export function createMockServices({ loginDelayMs, signedIn = false, storage }: Options = {}): AppServices {
-  const auth = createMockAuthGateway({ delayMs: loginDelayMs })
+// Composition root for the mock backend. The app passes the real login when the API address is set.
+export function createMockServices({ loginDelayMs, signedIn = false, storage, auth: realAuth }: Options = {}): AppServices {
   const session = createMockSessionStore({ active: signedIn, storage })
+  const auth = realAuth ?? createMockAuthGateway({ delayMs: loginDelayMs, session })
   const pin = createMockPinGateway()
   const orders = createMockOrdersRepository()
   const menu = createMockMenuRepository()
@@ -56,11 +60,15 @@ export function createMockServices({ loginDelayMs, signedIn = false, storage }: 
   const kitchen = createMockKitchenRepository()
 
   return {
-    login: (credentials) => login(auth, session, credentials),
-    logout: () => logout(session),
-    hasSession: () => session.isActive(),
-    getRememberedDevice: () => getRememberedDevice(pin),
-    unlockWithPin: (code) => unlockWithPin(pin, session, code),
+    login: (credentials) => login(auth, credentials),
+    logout: () => logout(auth),
+    hasSession: () => isSignedIn(auth),
+    pinUnlock: realAuth
+      ? undefined
+      : {
+          getRememberedDevice: () => getRememberedDevice(pin),
+          unlockWithPin: (code) => unlockWithPin(pin, session, code),
+        },
     getDashboard: () => getDashboard({ orders, menu, schedule }),
     getScheduleOverview: () => getScheduleOverview(schedule),
     pauseOrders: (minutes) => pauseOrdersIn(schedule, minutes),
