@@ -87,6 +87,7 @@ Full contract: `project-brain/shared/breakpoints.md` (in `frontend/project-brain
 
 - Mobile first. One column below 768 px.
 - Kitchen: two columns from `md` (768 px); the history spans both; four columns from `2xl` (1536 px). (2026-10-31)
+- Sidebar: fixed at `md` and up (`h-screen`). Only the page content scrolls. Below `md` the menu sits above the page and the page scrolls. (2026-10-31)
 - Test widths used: 390, 1024, 1180, 1500, 1920 px. Not yet checked: 320, 768, 1280.
 - No horizontal page scroll. Do not hide overflow with `overflow-x-hidden` to pass a check; check element bounds instead.
 
@@ -111,6 +112,7 @@ Respect the user's setting: every motion value goes through `useReducedMotion`. 
 - Opened through a React portal (`createPortal` to `document.body`), so it sits above the page.
 - Focus: moves to the close button on open; returns to the element that opened it on close.
 - Closes with the close button, Escape, or a drag down (see section 8). Does not close on refresh.
+- Mobile menu (below `md`): a fixed top bar (`h-14`) with a hamburger button that turns into a cross. The menu is a full-screen panel (`fixed inset-0 z-40 bg-neutral-900`) that opens as a circle growing from the button (`clipPath` 0% to 150%, 0.9 s, ease-out) and closes back into it (0.5 s, ease-in-out). Its links rise 6 px and fade in one by one (0.6 s each, 0.06 s apart, starting 0.25 s in) and leave in reverse. Escape or the same button closes it and returns focus to the button; choosing a link or "Cerrar sesión" closes it. Reduced motion shows it at once. (2026-10-31)
 
 ## 10. Accessibility
 

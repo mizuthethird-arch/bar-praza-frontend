@@ -1,82 +1,89 @@
-import { NavLink, Outlet, useNavigate } from 'react-router'
-import { useServices } from '../app/use-services'
+import { useEffect, useRef, useState } from 'react'
+import { Outlet } from 'react-router'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useMenuMotion } from '../ui/motion'
+import { SideNav } from './SideNav'
 
-type NavItem = { label: string; to?: string }
-
-const mainNav: NavItem[] = [
-  { label: 'Resumen', to: '/' },
-  { label: 'Pedidos', to: '/pedidos' },
-  { label: 'Carta y productos', to: '/carta' },
-  { label: 'Stock', to: '/stock' },
-  { label: 'Horario y pedidos', to: '/horario' },
-  { label: 'Clientes', to: '/clientes' },
-  { label: 'Informes', to: '/informes' },
-  { label: 'Personal y ajustes', to: '/ajustes' },
-]
-
-const secondaryNav: NavItem[] = [
-  { label: 'Pedidos de cocina', to: '/cocina' },
-  { label: 'Consola en vivo', to: '/consola' },
-  { label: 'Tomar pedido (móvil)' },
-]
-
-const itemClass = 'block shrink-0 rounded-md px-3 py-2 text-sm'
-
-// Items without a route yet are shown dimmed and do nothing.
-function NavEntry({ item }: { item: NavItem }) {
-  if (!item.to) {
-    return (
-      <span aria-disabled="true" className={`${itemClass} text-neutral-600`}>
-        {item.label}
-      </span>
-    )
-  }
+// Three bars that turn into a cross while the menu is open.
+function MenuIcon({ open }: { open: boolean }) {
+  const bar = 'block h-0.5 w-5 rounded-full bg-current transition-transform duration-300 motion-reduce:transition-none'
   return (
-    <NavLink
-      to={item.to}
-      end
-      className={({ isActive }) =>
-        `${itemClass} ${isActive ? 'bg-neutral-800 text-white' : 'text-neutral-300 hover:bg-neutral-800/60'}`
-      }
-    >
-      {item.label}
-    </NavLink>
+    <span aria-hidden="true" className="flex flex-col items-center justify-center gap-1.5">
+      <span className={`${bar} ${open ? 'translate-y-2 rotate-45' : ''}`} />
+      <span className={`${bar} ${open ? 'opacity-0' : ''}`} />
+      <span className={`${bar} ${open ? '-translate-y-2 -rotate-45' : ''}`} />
+    </span>
   )
 }
 
 export function AppShell() {
-  const { logout } = useServices()
-  const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const motionVariants = useMenuMotion()
 
-  function signOut() {
-    logout()
-    navigate('/login', { replace: true })
-  }
+  // Escape closes the mobile menu and gives focus back to its button.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setMenuOpen(false)
+      menuButtonRef.current?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [menuOpen])
 
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-950 font-mono text-neutral-100 md:flex-row">
-      <aside className="min-w-0 border-b border-neutral-800 bg-neutral-900 p-4 md:w-60 md:shrink-0 md:border-b-0 md:border-r md:p-6">
-        <p className="px-3 pb-6 text-base font-bold">Bar Praza</p>
+    <div className="min-h-screen bg-neutral-950 font-mono text-neutral-100 md:flex md:h-screen md:overflow-hidden">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center gap-3 border-b border-neutral-800 bg-neutral-900 px-3 md:hidden">
+        <button
+          ref={menuButtonRef}
+          type="button"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-menu"
+          aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          onClick={() => setMenuOpen((open) => !open)}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md hover:bg-neutral-800/60"
+        >
+          <MenuIcon open={menuOpen} />
+        </button>
+        <p className="text-base font-bold">Bar Praza</p>
+      </header>
 
-        <nav className="flex gap-1 overflow-x-auto md:flex-col">
-          {mainNav.map((item) => (
-            <NavEntry key={item.label} item={item} />
-          ))}
-          <hr aria-hidden="true" className="my-4 hidden border-neutral-800 md:block" />
-          {secondaryNav.map((item) => (
-            <NavEntry key={item.label} item={item} />
-          ))}
-          <button
-            type="button"
-            onClick={signOut}
-            className={`${itemClass} text-left text-neutral-400 hover:bg-neutral-800/60 md:mt-4`}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            id="mobile-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú"
+            variants={motionVariants.panel}
+            initial="hidden"
+            animate="show"
+            exit="hidden"
+            className="fixed inset-0 z-40 overflow-y-auto overscroll-contain bg-neutral-900 px-6 pb-10 pt-20 md:hidden"
           >
-            Cerrar sesión
-          </button>
-        </nav>
+            <motion.div
+              variants={motionVariants.list}
+              initial="hidden"
+              animate="show"
+              exit="hidden"
+            >
+              <SideNav
+                onNavigate={() => setMenuOpen(false)}
+                itemMotion={motionVariants.item}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <aside className="hidden min-w-0 bg-neutral-900 p-6 md:block md:h-screen md:w-60 md:shrink-0 md:overflow-y-auto md:border-r md:border-neutral-800">
+        <p className="px-3 pb-6 text-base font-bold">Bar Praza</p>
+        <SideNav />
       </aside>
 
-      <div className="min-w-0 flex-1 overflow-x-hidden">
+      <div className="min-w-0 flex-1 overflow-x-hidden pt-14 md:h-screen md:overflow-y-auto md:pt-0">
         <Outlet />
       </div>
     </div>
