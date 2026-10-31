@@ -1,10 +1,10 @@
-import type { PinGateway } from '../../application/ports'
+import type { PinGateway, SessionStore } from '../../application/ports'
 import type { PinResult } from '../../domain/auth/pin'
 import type { RememberedDevice } from '../../domain/auth/remembered-device'
 
-type Options = { delayMs?: number; maxAttempts?: number }
+type Options = { delayMs?: number; maxAttempts?: number; session: SessionStore }
 
-// Demo PIN for the mock only. The real PIN is set per person by the manager (WP-1, open).
+// Demo PIN for the mock only. The real PIN is set per person by the backend (see the backend's API doc).
 export const MOCK_DEMO_PIN = '1234'
 
 const remembered: RememberedDevice = {
@@ -15,7 +15,8 @@ const remembered: RememberedDevice = {
 }
 
 // Keeps the failed attempts in memory: a reload brings the attempts back, as in the mock data.
-export function createMockPinGateway({ delayMs = 300, maxAttempts = 3 }: Options = {}): PinGateway {
+// A right PIN starts the mock session, as the backend does with its cookie.
+export function createMockPinGateway({ delayMs = 300, maxAttempts = 3, session }: Options): PinGateway {
   let attemptsLeft = maxAttempts
 
   const wait = () => new Promise((resolve) => setTimeout(resolve, delayMs))
@@ -30,6 +31,7 @@ export function createMockPinGateway({ delayMs = 300, maxAttempts = 3 }: Options
       if (attemptsLeft === 0) return { status: 'locked' }
       if (pin === MOCK_DEMO_PIN) {
         attemptsLeft = maxAttempts
+        session.start()
         return { status: 'ok' }
       }
       attemptsLeft -= 1

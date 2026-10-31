@@ -53,8 +53,10 @@ VITE_API_URL=http://localhost:3000 node node_modules/vite/bin/vite.js --host loc
 
 ### PIN unlock (`/login/pin`)
 
-Not built on the backend yet. When the login uses the backend, the PIN button and `/login/pin` are not
-shown, and `/login/pin` goes back to the email login. The mock keeps them for the preview.
+Built on the backend (branch `feat/pin-unlock`, API doc section 4). With the backend login, the PIN button is
+shown only where this device is remembered (`GET /auth/device`); otherwise `/login/pin` goes back to the email
+login. A login that ticks "Recordar este dispositivo" sends `remember_device: true`, which sets the 30-day device
+cookie. Only a successful email and password login lifts the PIN lock.
 
 The PIN unlocks the panel on the device that remembers the person. It does not replace the
 password: it only starts a session again on a device that has been used before.
@@ -79,9 +81,7 @@ Server rules:
 
 Open, owned elsewhere:
 
-- ISS-4: session length and logout rules (user). It also covers how long the PIN lock lasts.
-- WP-1: how the PIN is set for each person, and how a device is remembered. The "Recordar este
-  dispositivo 30 días" checkbox on the email login sends nothing yet.
+- ISS-4: session length and logout rules (user). The PIN lock has no timer; it ends with a successful email login.
 - WP-1.5: the login endpoint itself (backend).
 - How the session is carried (cookie or token) is the tech lead's decision. The frontend only
   needs `hasSession()` to answer without a network round trip, or a "check session" call at start.

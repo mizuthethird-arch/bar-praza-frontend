@@ -16,7 +16,7 @@ import {
 import { listLiveEvents, pollLiveEvents } from '../../application/live-console'
 import { getStock, recordMovementIn } from '../../application/stock'
 import type { AppServices } from '../../application/services'
-import type { AuthGateway } from '../../application/ports'
+import type { AuthGateway, PinGateway } from '../../application/ports'
 import { createMockAuthGateway } from './mock-auth-gateway'
 import { createMockCatalogRepository } from './mock-catalog-repository'
 import { createMockCustomersRepository } from './mock-customers-repository'
@@ -40,13 +40,15 @@ type Options = {
   // The real login (HTTP). When given, it replaces the mock login and the PIN unlock is left out,
   // because the backend does not have it yet. The other screens stay on the mock until they are built.
   auth?: AuthGateway
+  // The real PIN unlock (HTTP). Without it and with a real login, the PIN is left out.
+  pin?: PinGateway
 }
 
 // Composition root for the mock backend. The app passes the real login when the API address is set.
-export function createMockServices({ loginDelayMs, signedIn = false, storage, auth: realAuth }: Options = {}): AppServices {
+export function createMockServices({ loginDelayMs, signedIn = false, storage, auth: realAuth, pin: realPin }: Options = {}): AppServices {
   const session = createMockSessionStore({ active: signedIn, storage })
   const auth = realAuth ?? createMockAuthGateway({ delayMs: loginDelayMs, session })
-  const pin = createMockPinGateway()
+  const pin = realPin ?? (realAuth ? undefined : createMockPinGateway({ session }))
   const orders = createMockOrdersRepository()
   const menu = createMockMenuRepository()
   const schedule = createMockScheduleRepository()
@@ -63,12 +65,12 @@ export function createMockServices({ loginDelayMs, signedIn = false, storage, au
     login: (credentials) => login(auth, credentials),
     logout: () => logout(auth),
     hasSession: () => isSignedIn(auth),
-    pinUnlock: realAuth
-      ? undefined
-      : {
+    pinUnlock: pin
+      ? {
           getRememberedDevice: () => getRememberedDevice(pin),
-          unlockWithPin: (code) => unlockWithPin(pin, session, code),
-        },
+          unlockWithPin: (code) => unlockWithPin(pin, code),
+        }
+      : undefined,
     getDashboard: () => getDashboard({ orders, menu, schedule }),
     getScheduleOverview: () => getScheduleOverview(schedule),
     pauseOrders: (minutes) => pauseOrdersIn(schedule, minutes),

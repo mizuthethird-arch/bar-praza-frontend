@@ -29,6 +29,19 @@ describe('HTTP auth gateway', () => {
     })
   })
 
+  it('asks the backend to remember the device only when the person ticked the box', async () => {
+    const send = replyWith(204)
+    const gateway = createHttpAuthGateway({ baseUrl, fetch: send })
+
+    await gateway.login({ ...credentials, rememberDevice: true })
+    await gateway.login(credentials)
+
+    const [, first] = send.mock.calls[0] as unknown as [string, RequestInit]
+    const [, second] = send.mock.calls[1] as unknown as [string, RequestInit]
+    expect(JSON.parse(first.body as string)).toEqual({ ...credentials, remember_device: true })
+    expect(JSON.parse(second.body as string)).toEqual(credentials)
+  })
+
   it('resolves on 204, when the backend has set the session cookie', async () => {
     const gateway = createHttpAuthGateway({ baseUrl, fetch: replyWith(204) })
 
@@ -55,6 +68,12 @@ describe('HTTP auth gateway', () => {
 
   it('reports a refused request whose body has no readable code as a generic failure', async () => {
     const gateway = createHttpAuthGateway({ baseUrl, fetch: vi.fn(async () => new Response('bad', { status: 400 })) })
+
+    await expect(gateway.login(credentials)).rejects.toThrow('login failed with 400')
+  })
+
+  it('treats an error body without a text code as a generic failure', async () => {
+    const gateway = createHttpAuthGateway({ baseUrl, fetch: replyWith(400, { error: 42 }) })
 
     await expect(gateway.login(credentials)).rejects.toThrow('login failed with 400')
   })

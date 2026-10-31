@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router'
 import type { PinUnlockServices } from '../../../application/services'
+import { NoRememberedDeviceError, PinNotSetError } from '../../../domain/auth/errors'
 import { PIN_LENGTH } from '../../../domain/auth/pin'
 import type { RememberedDevice } from '../../../domain/auth/remembered-device'
 import { useAuthMotion, useLockMotion } from '../../ui/motion'
@@ -33,9 +34,13 @@ export function PinPad({ pinUnlock, active, from, onEmail }: Props) {
 
   useEffect(() => {
     let current = true
-    getRememberedDevice().then((found) => {
-      if (current) setDevice(found)
-    })
+    // A missing device is reported when the PIN is sent, so a failed load only leaves the greeting out.
+    getRememberedDevice().then(
+      (found) => {
+        if (current) setDevice(found)
+      },
+      () => undefined,
+    )
     return () => {
       current = false
     }
@@ -55,7 +60,12 @@ export function PinPad({ pinUnlock, active, from, onEmail }: Props) {
         return
       }
       setAttemptsLeft(result.attemptsLeft)
-    } catch {
+    } catch (error) {
+      // No device or no PIN for this account: the PIN cannot be used here, so the email login takes over.
+      if (error instanceof NoRememberedDeviceError || error instanceof PinNotSetError) {
+        onEmail()
+        return
+      }
       setFailed(true)
     } finally {
       setBusy(false)
