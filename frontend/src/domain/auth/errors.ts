@@ -20,3 +20,19 @@ export class TooManyAttemptsError extends Error {
     this.name = 'TooManyAttemptsError'
   }
 }
+
+// The device is not remembered, or the account is deactivated (401 no_device): the PIN is not offered.
+export class NoRememberedDeviceError extends Error {
+  constructor() {
+    super('No remembered device')
+    this.name = 'NoRememberedDeviceError'
+  }
+}
+
+// The account has no PIN yet (403 pin_not_set).
+export class PinNotSetError extends Error {
+  constructor() {
+    super('PIN not set')
+    this.name = 'PinNotSetError'
+  }
+}

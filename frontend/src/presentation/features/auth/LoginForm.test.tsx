@@ -12,6 +12,18 @@ describe('LoginForm (WP-2.1)', () => {
     expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument()
   })
 
+  it('sends rememberDevice as false when the person unticks the box', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    render(<LoginForm onSubmit={onSubmit} />)
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /recordar este dispositivo/i }))
+    await userEvent.type(screen.getByLabelText(/email/i), 'staff@example.com')
+    await userEvent.type(screen.getByLabelText(/contraseña/i), 'secret-pass')
+    await userEvent.click(screen.getByRole('button', { name: /entrar/i }))
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ rememberDevice: false }))
+  })
+
   it('passes the entered email and password to onSubmit', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined)
     render(<LoginForm onSubmit={onSubmit} />)
@@ -23,6 +35,7 @@ describe('LoginForm (WP-2.1)', () => {
     expect(onSubmit).toHaveBeenCalledWith({
       email: 'staff@example.com',
       password: 'secret-pass',
+      rememberDevice: true,
     })
   })
 

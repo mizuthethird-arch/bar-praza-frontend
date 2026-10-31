@@ -24,6 +24,8 @@ export function LoginForm({ onSubmit, onPin }: Props) {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // Ticked by default, as in the Design artifact; sent with the login so the backend remembers the device.
+  const [rememberDevice, setRememberDevice] = useState(true)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -35,7 +37,7 @@ export function LoginForm({ onSubmit, onPin }: Props) {
     }
     setSubmitting(true)
     try {
-      await onSubmit({ email, password })
+      await onSubmit({ email, password, rememberDevice })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo entrar')
     } finally {
@@ -133,7 +135,12 @@ export function LoginForm({ onSubmit, onPin }: Props) {
 
         <div className="mb-4 flex h-24 flex-col justify-between">
           <label className="flex h-11 items-center gap-2 text-[15px] leading-5 text-ink">
-            <input type="checkbox" defaultChecked className="size-5 accent-tella" />
+            <input
+              type="checkbox"
+              checked={rememberDevice}
+              onChange={(event) => setRememberDevice(event.target.checked)}
+              className="size-5 accent-tella"
+            />
             Recordar este dispositivo 30 días
           </label>
           <a href="#recuperar" className="flex h-11 items-center text-[15px] leading-5 font-semibold text-lousa underline underline-offset-4">
