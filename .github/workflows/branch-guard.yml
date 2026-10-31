@@ -1,0 +1,35 @@
+name: Branch guard
+
+# Detection only: GitHub protection rules are not available on this plan.
+# This job fails when a protected branch receives a forced push, or a head
+# commit that did not arrive through a pull request.
+on:
+  push:
+    branches: [main, dev, dev-production]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  guard:
+    name: Detect direct pushes and history rewrites
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail on forced push
+        if: github.event.forced
+        run: |
+          echo "::error::Forced push to ${GITHUB_REF_NAME}. Protected history must not be rewritten."
+          exit 1
+
+      - name: Fail if the head commit did not arrive through a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq 'length')
+          if [ "$count" -eq 0 ]; then
+            echo "::error::Commit ${GITHUB_SHA} on ${GITHUB_REF_NAME} is not linked to a pull request. Direct push."
+            exit 1
+          fi
+          echo "Commit ${GITHUB_SHA} is linked to ${count} pull request(s)."
