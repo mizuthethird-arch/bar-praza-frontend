@@ -31,7 +31,8 @@ describe('login design', () => {
 
   it('shows the full-bleed background image behind a glass card', () => {
     const screen = sources.find(([path]) => path.endsWith('AuthFrame.tsx'))?.[1] ?? ''
-    expect(screen).toContain('src="/login-bg.jpg"')
+    expect(screen).toContain('login-bg.jpg')
+    expect(screen).toContain('import.meta.env.BASE_URL')
     expect(screen).toContain('backdrop-blur-xl')
     expect(screen).toContain('bg-surface-raised/85')
   })
