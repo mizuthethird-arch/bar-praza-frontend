@@ -12,7 +12,7 @@ export function AuthFrame({ children }: { children: ReactNode }) {
   return (
     <div className="relative flex min-h-screen items-start justify-center overflow-hidden bg-surface px-4 py-6 text-ink min-[1440px]:justify-start md:px-24 md:py-12">
       <img
-        src="/login-bg.jpg"
+        src={`${import.meta.env.BASE_URL}login-bg.jpg`}
         alt=""
         aria-hidden="true"
         className="absolute inset-0 h-full w-full object-cover object-[70%_50%]"
