@@ -6,6 +6,7 @@ import { createHttpPinGateway } from './infrastructure/http/http-pin-gateway'
 import { createMockServices } from './infrastructure/mock/create-mock-services'
 import App from './presentation/app/App'
 import { ServicesProvider } from './presentation/app/ServicesProvider'
+import { routerBasename } from './presentation/app/router-base'
 import './index.css'
 
 // Composition root. With VITE_API_URL set (see frontend/docs/backend-contract.md), the login and the PIN
@@ -19,7 +20,7 @@ const services = createMockServices({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename(import.meta.env.BASE_URL)}>
       <ServicesProvider services={services}>
         <App />
       </ServicesProvider>
