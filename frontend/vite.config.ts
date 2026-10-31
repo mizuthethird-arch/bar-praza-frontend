@@ -14,7 +14,8 @@ export default defineConfig({
         name: 'Bar Praza',
         short_name: 'Praza',
         display: 'standalone',
-        start_url: '/',
+        // Relative to the manifest, so the installed app opens in its own folder, also under a path such as GitHub Pages.
+        start_url: './',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         icons: [],
