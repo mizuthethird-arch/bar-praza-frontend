@@ -12,3 +12,6 @@ coverage/
 
 # Internal development brain of the frontend agent (not part of the product)
 frontend/project-brain/
+
+# Internal development brain of the PM agent (not part of the product)
+project-brain/
