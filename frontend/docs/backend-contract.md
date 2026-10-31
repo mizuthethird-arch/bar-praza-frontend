@@ -36,11 +36,25 @@ Source of truth in the code:
 
 | Operation | Input | Output | Rules / errors |
 |---|---|---|---|
-| `login` | `{ email, password }` | nothing | Wrong credentials must be told apart from other failures: the screen shows "Email o contraseña incorrectos" for that case and a generic message otherwise. |
-| `logout` | none | nothing | Ends the session. |
-| `hasSession` | none | boolean | Used by the route guard. The mock keeps it in sessionStorage, so it survives a reload. |
+| `login` | `{ email, password }` | nothing | Built: `POST /auth/login`. Wrong credentials (401 `invalid_credentials`, which also covers a locked account) show "Email o contraseña incorrectos". 400 shows "Revisa el email y la contraseña", 429 shows "Demasiados intentos. Inténtalo más tarde.", anything else "No se pudo entrar. Inténtalo de nuevo." |
+| `logout` | none | nothing | Built: `POST /auth/logout`, always 204. If the request fails, the person stays in the app. |
+| `hasSession` | none | Promise of boolean | Built: `GET /auth/session` (200 is signed in, 401 is not). Async, so the route guard and the login screen wait for it. A failed check counts as signed out. |
+
+Every call sends `credentials: 'include'`, because the session is an HttpOnly cookie that JavaScript
+cannot read. The backend's own description, with the error codes and the lock rules, is in its
+`docs/api-for-frontend.md`. The mock stays for everything else until each read and command is built.
+
+To run the login against the backend, start the dev server on `localhost` (the backend allows only
+`http://localhost:5173`) with the API address set:
+
+```bash
+VITE_API_URL=http://localhost:3000 node node_modules/vite/bin/vite.js --host localhost --port 5173
+```
 
 ### PIN unlock (`/login/pin`)
+
+Not built on the backend yet. When the login uses the backend, the PIN button and `/login/pin` are not
+shown, and `/login/pin` goes back to the email login. The mock keeps them for the preview.
 
 The PIN unlocks the panel on the device that remembers the person. It does not replace the
 password: it only starts a session again on a device that has been used before.

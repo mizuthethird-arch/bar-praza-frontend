@@ -57,8 +57,13 @@ export function SideNav({ onNavigate, itemMotion }: Props) {
   const { logout } = useServices()
   const navigate = useNavigate()
 
-  function signOut() {
-    logout()
+  async function signOut() {
+    // If the backend cannot end the session, stay on the page: the session is still open.
+    try {
+      await logout()
+    } catch {
+      return
+    }
     onNavigate?.()
     navigate('/login', { replace: true })
   }

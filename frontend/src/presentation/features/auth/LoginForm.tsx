@@ -144,21 +144,25 @@ export function LoginForm({ onSubmit, onPin }: Props) {
         </button>
       </form>
 
-      <div className="flex h-5 items-center gap-4 text-[15px] leading-5 text-ink-muted">
-        <span aria-hidden="true" className="h-px flex-1 bg-line" />
-        o en este dispositivo
-        <span aria-hidden="true" className="h-px flex-1 bg-line" />
-      </div>
+      {onPin && (
+        <>
+          <div className="flex h-5 items-center gap-4 text-[15px] leading-5 text-ink-muted">
+            <span aria-hidden="true" className="h-px flex-1 bg-line" />
+            o en este dispositivo
+            <span aria-hidden="true" className="h-px flex-1 bg-line" />
+          </div>
 
-      <div className="flex gap-2">
-        <button type="button" onClick={onPin} className={socialClass}>
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-none stroke-current stroke-2">
-            <rect x="4" y="4" width="16" height="16" rx="3" />
-            <path d="M9 9h.01M12 9h.01M15 9h.01M9 12h.01M12 12h.01M15 12h.01M12 15h.01" strokeLinecap="round" />
-          </svg>
-          Desbloquear con PIN
-        </button>
-      </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={onPin} className={socialClass}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-none stroke-current stroke-2">
+                <rect x="4" y="4" width="16" height="16" rx="3" />
+                <path d="M9 9h.01M12 9h.01M15 9h.01M9 12h.01M12 12h.01M15 12h.01M12 15h.01" strokeLinecap="round" />
+              </svg>
+              Desbloquear con PIN
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

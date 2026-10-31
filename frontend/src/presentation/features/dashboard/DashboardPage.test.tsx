@@ -29,10 +29,10 @@ describe('DashboardPage', () => {
     expect(within(sold).getByText('Agotado')).toBeInTheDocument()
   })
 
-  it('shows a loading message while the data is on its way', () => {
+  it('shows a loading message while the data is on its way', async () => {
     renderApp('/', { getDashboard: () => new Promise(() => {}) })
 
-    expect(screen.getByRole('status')).toHaveTextContent('Cargando')
+    expect(await screen.findByRole('status')).toHaveTextContent('Cargando')
   })
 
   it('shows an error message when the dashboard cannot be loaded', async () => {

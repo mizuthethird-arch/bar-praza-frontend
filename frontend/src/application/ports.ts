@@ -15,6 +15,9 @@ import type { RememberedDevice } from '../domain/auth/remembered-device'
 
 export interface AuthGateway {
   login(credentials: Credentials): Promise<void>
+  logout(): Promise<void>
+  // Asks the backend whether this browser still has a session.
+  isSignedIn(): Promise<boolean>
 }
 
 export interface PinGateway {

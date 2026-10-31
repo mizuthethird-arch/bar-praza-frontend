@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { isIsoDate } from '../../domain/schedule/schedule-changes'
 import { mockAccounts } from './mock-accounts'
 import { createMockServices } from './create-mock-services'
@@ -95,6 +95,23 @@ describe('seed data', () => {
   })
 })
 
+describe('real login in the services', () => {
+  it('sends the login to the given gateway and leaves out the mock PIN unlock', async () => {
+    const auth = {
+      login: vi.fn().mockResolvedValue(undefined),
+      logout: vi.fn().mockResolvedValue(undefined),
+      isSignedIn: vi.fn().mockResolvedValue(true),
+    }
+    const services = createMockServices({ loginDelayMs: 0, auth })
+
+    await services.login({ email: 'staff@example.com', password: 'secret-pass' })
+
+    expect(auth.login).toHaveBeenCalledWith({ email: 'staff@example.com', password: 'secret-pass' })
+    await expect(services.hasSession()).resolves.toBe(true)
+    expect(services.pinUnlock).toBeUndefined()
+  })
+})
+
 describe('session across reloads', () => {
   afterEach(() => sessionStorage.clear())
 
@@ -102,6 +119,6 @@ describe('session across reloads', () => {
     const first = createMockServices({ loginDelayMs: 0, storage: sessionStorage })
     await first.login({ email: mockAccounts[0].email, password: mockAccounts[0].password })
 
-    expect(createMockServices({ loginDelayMs: 0, storage: sessionStorage }).hasSession()).toBe(true)
+    await expect(createMockServices({ loginDelayMs: 0, storage: sessionStorage }).hasSession()).resolves.toBe(true)
   })
 })
