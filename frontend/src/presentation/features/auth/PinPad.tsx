@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router'
+import type { PinUnlockServices } from '../../../application/services'
 import { PIN_LENGTH } from '../../../domain/auth/pin'
 import type { RememberedDevice } from '../../../domain/auth/remembered-device'
-import { useServices } from '../../app/use-services'
 import { useAuthMotion, useLockMotion } from '../../ui/motion'
 
 type Props = {
+  pinUnlock: PinUnlockServices
   // Only the active view takes keys; the hidden one stays mounted to keep the card's height.
   active: boolean
   // Where to go once the PIN is right: the page the person asked for before signing in.
@@ -18,8 +19,8 @@ const digitKey = 'h-12 rounded-xl border border-line bg-surface text-xl leading-
 
 // The PIN view of the sign-in card: unlocks the panel on the device that remembers this person.
 // It does not wait for the device to load before the keypad works.
-export function PinPad({ active, from, onEmail }: Props) {
-  const { getRememberedDevice, unlockWithPin } = useServices()
+export function PinPad({ pinUnlock, active, from, onEmail }: Props) {
+  const { getRememberedDevice, unlockWithPin } = pinUnlock
   const navigate = useNavigate()
   const { notice } = useAuthMotion()
   const lock = useLockMotion()

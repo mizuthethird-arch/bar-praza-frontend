@@ -13,12 +13,17 @@ import type { Dashboard } from './get-dashboard'
 import type { ScheduleOverview, SpecialClosure } from '../domain/schedule/schedule'
 
 // What the presentation layer is allowed to call. Built in the composition root.
-export interface AppServices {
-  login(credentials: Credentials): Promise<void>
-  logout(): void
-  hasSession(): boolean
+export type PinUnlockServices = {
   getRememberedDevice(): Promise<RememberedDevice>
   unlockWithPin(pin: string): Promise<PinResult>
+}
+
+export interface AppServices {
+  login(credentials: Credentials): Promise<void>
+  logout(): Promise<void>
+  hasSession(): Promise<boolean>
+  // Only where the backend has the PIN unlock. Without it the PIN button and /login/pin are not shown.
+  pinUnlock?: PinUnlockServices
   getDashboard(): Promise<Dashboard>
   getScheduleOverview(): Promise<ScheduleOverview>
   pauseOrders(minutes: number): Promise<ScheduleOverview>

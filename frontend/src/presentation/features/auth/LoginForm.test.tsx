@@ -151,8 +151,15 @@ describe('LoginForm artifact parity', () => {
   })
 
   it('shows the divider between the form and the other sign-in options', () => {
-    render(<LoginForm onSubmit={vi.fn()} />)
+    render(<LoginForm onSubmit={vi.fn()} onPin={vi.fn()} />)
 
     expect(screen.getByText('o en este dispositivo')).toBeInTheDocument()
+  })
+
+  it('hides the divider and the PIN button when there is no PIN unlock', () => {
+    render(<LoginForm onSubmit={vi.fn()} />)
+
+    expect(screen.queryByText('o en este dispositivo')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /desbloquear con pin/i })).not.toBeInTheDocument()
   })
 })
