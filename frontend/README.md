@@ -29,6 +29,34 @@ Any other email or password shows "Email o contraseña incorrectos". The session
 
 All the mock data, and what to try on each screen, is in [docs/mock-data.md](docs/mock-data.md). The contract the backend needs to meet is in [docs/backend-contract.md](docs/backend-contract.md).
 
+## Docker workspace (no Node on your machine)
+
+The app runs in a container. You only need Docker. Your source stays on your disk and is mounted into the container, so edits show up live.
+
+```bash
+cd frontend
+docker compose up --build     # first time, or after changing package-lock.json
+docker compose up             # later runs
+```
+
+Open http://127.0.0.1:5173. Stop with Ctrl+C, or `docker compose down`.
+
+Run the checks inside the container:
+
+```bash
+docker compose exec app npm test
+docker compose exec app npm run test:coverage
+docker compose exec app npm run check     # types, lint, tests with the coverage gate, build
+```
+
+To use another host port, set `APP_PORT`, for example `APP_PORT=5180 docker compose up`.
+
+VS Code: open the repository folder and choose "Reopen in Container" (it reads `.devcontainer/devcontainer.json`).
+
+## CI
+
+Every push and pull request to `main` or `dev` runs `.github/workflows/ci.yml`. It builds the `check` stage of the Dockerfile, which runs `npm run check`, and audits the installed packages (fails on high and critical). The same checks run locally from the repository root with `docker build --target check frontend`.
+
 ## Workflow
 
 TDD: write the failing test first, then the code. Tests sit next to the code they cover.

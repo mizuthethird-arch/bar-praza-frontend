@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+# Read-only token: CI never needs to write to the repository.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Types, lint, tests, coverage gate, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # The check stage runs the same commands as `npm run check` on your machine and fails on the first error.
+      - name: Run checks in the container
+        run: docker build --target check --tag barpraza-check:${{ github.sha }} frontend
+
+  audit:
+    name: Dependency audit (high and critical)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Build the dependency stage
+        run: docker build --target deps --tag barpraza-deps:${{ github.sha }} frontend
+
+      - name: Audit installed packages
+        run: docker run --rm barpraza-deps:${{ github.sha }} npm audit --audit-level=high
