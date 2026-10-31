@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { Credentials } from '../../../domain/auth/credentials'
+import { credentialsProblem, type Credentials } from '../../../domain/auth/credentials'
 import { useAuthMotion } from '../../ui/motion'
 
 type Props = {
@@ -28,6 +28,11 @@ export function LoginForm({ onSubmit, onPin }: Props) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+    const problem = credentialsProblem({ email, password })
+    if (problem) {
+      setError(problem)
+      return
+    }
     setSubmitting(true)
     try {
       await onSubmit({ email, password })
@@ -45,7 +50,8 @@ export function LoginForm({ onSubmit, onPin }: Props) {
         <p className="text-base leading-6 text-ink-muted">Introduce tus datos para gestionar pedidos, carta y personal.</p>
       </div>
 
-      <form onSubmit={handleSubmit} aria-label="Entrar al panel" className="flex flex-col">
+      {/* noValidate: the browser's own email check would block an accent before our message can say why. */}
+      <form onSubmit={handleSubmit} noValidate aria-label="Entrar al panel" className="flex flex-col">
         <AnimatePresence initial={false}>
           {error && (
             <motion.div
