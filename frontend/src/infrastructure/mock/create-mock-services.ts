@@ -13,11 +13,12 @@ import {
   getKitchenBoard,
   markKitchenOrderReadyIn,
   startKitchenOrderIn,
+  watchKitchenBoardIn,
 } from '../../application/kitchen'
-import { listLiveEvents, pollLiveEvents } from '../../application/live-console'
+import { listLiveEvents, watchLiveEvents } from '../../application/live-console'
 import { getStock, recordMovementIn } from '../../application/stock'
 import type { AppServices } from '../../application/services'
-import type { AuthGateway, PinGateway } from '../../application/ports'
+import type { AuthGateway, PinGateway, RealtimePort } from '../../application/ports'
 import { createMockCatalogRepository } from './mock-catalog-repository'
 import { createMockCustomersRepository } from './mock-customers-repository'
 import { createMockKitchenRepository } from './mock-kitchen-repository'
@@ -37,11 +38,13 @@ type Options = {
   pin?: PinGateway
   // Where the kitchen board is kept, so every open tab sees the same board. The demo build passes localStorage.
   kitchenStorage?: Pick<Storage, 'getItem' | 'setItem'>
+  // Changes from other devices. Left out, the mock's own watch is used (the demo build); the HTTP build passes a socket.
+  realtime?: RealtimePort
 }
 
 // The read side is still mock data, with no accounts and no login. The login and the PIN come in as
 // arguments, so a production build never includes the demo accounts (ISS-13).
-export function createMockServices({ auth, pin, kitchenStorage }: Options): AppServices {
+export function createMockServices({ auth, pin, kitchenStorage, realtime }: Options): AppServices {
   const orders = createMockOrdersRepository()
   const menu = createMockMenuRepository()
   const schedule = createMockScheduleRepository()
@@ -85,6 +88,7 @@ export function createMockServices({ auth, pin, kitchenStorage }: Options): AppS
     removeMember: (id) => removeMemberFrom(team, id),
     saveSettings: (settings) => saveSettingsIn(team, settings),
     getKitchenBoard: () => getKitchenBoard(kitchen),
+    watchKitchenBoard: (onBoard) => (realtime ? realtime.watchKitchenBoard(onBoard) : watchKitchenBoardIn(kitchen, onBoard)),
     startKitchenOrder: (id) => startKitchenOrderIn(kitchen, id),
     markKitchenOrderReady: (id) => markKitchenOrderReadyIn(kitchen, id),
     deliverKitchenOrder: (id) => deliverKitchenOrderIn(kitchen, id),
@@ -92,6 +96,6 @@ export function createMockServices({ auth, pin, kitchenStorage }: Options): AppS
     closeKitchenShift: () => closeKitchenShiftIn(kitchen),
     testKitchen: { createOrder: () => kitchen.createTestOrder(), reset: () => kitchen.reset() },
     listLiveEvents: () => listLiveEvents(live),
-    pollLiveEvents: (afterId) => pollLiveEvents(live, afterId),
+    watchLiveEvents: (onEvent) => (realtime ? realtime.watchLiveEvents(onEvent) : watchLiveEvents(live, onEvent)),
   }
 }

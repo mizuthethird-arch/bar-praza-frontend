@@ -5,9 +5,8 @@ import { outlineButton, primaryButton } from '../../ui/classes'
 import { Page, PageHeader, Reveal } from '../../ui/Page'
 import { playChime } from './chime'
 
-// Demo build only: makes test orders for the kitchen board and tries the sound. An open Pedidos de cocina
-// tab in the same browser takes each new order at once, through browser storage. Any other tab picks it up
-// on its own refresh, every 15 seconds.
+// Demo build only: makes test orders for the kitchen board and tries the sound. The board hears about each new
+// order as it is made, so it shows and chimes at once.
 export function TestOrderPage() {
   const { testKitchen } = useServices()
   const [notice, setNotice] = useState<{ text: string; failed: boolean } | null>(null)
@@ -42,7 +41,7 @@ export function TestOrderPage() {
             void run(async () => {
               const board = await testKitchen.createOrder()
               const created = board.orders[board.orders.length - 1]
-              return `Pedido ${created.id} creado. Aparecerá en Pedidos de cocina en unos segundos.`
+              return `Pedido ${created.id} creado. Aparecerá al momento en Pedidos de cocina.`
             }, 'No se pudo crear el pedido de prueba. Inténtalo de nuevo.')
           }
           className={`${primaryButton} self-start`}

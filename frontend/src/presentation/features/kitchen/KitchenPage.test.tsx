@@ -2,6 +2,7 @@ import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { KitchenBoard, KitchenOrder } from '../../../domain/kitchen/kitchen'
+import { createDemoServices } from '../../../infrastructure/mock/demo-services'
 import { renderApp } from '../../../test/render-app'
 import { playChime } from './chime'
 
@@ -198,12 +199,14 @@ describe('KitchenPage', () => {
     expect(within(dialog).getByText('9,50 €')).toBeInTheDocument()
   })
 
-  it('keeps the pop-up open while the board refreshes', async () => {
+  it('keeps the pop-up open when the board changes', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderApp('/cocina')
+    const board = await createDemoServices({ loginDelayMs: 0, signedIn: true }).getKitchenBoard()
+    const feed = boardFeed()
+    renderApp('/cocina', { watchKitchenBoard: feed.watchKitchenBoard })
 
     await user.click(await screen.findByRole('button', { name: /#40.*Iria/ }))
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    act(() => feed.send({ ...board }))
 
     expect(screen.getByRole('dialog', { name: 'Pedido #40 · Iria' })).toBeInTheDocument()
   })
@@ -306,62 +309,68 @@ describe('KitchenPage card grid', () => {
   })
 })
 
+// The board's watch in a test: the page keeps the handler, and the test sends a board through it as the server would.
+function boardFeed() {
+  let send: (board: KitchenBoard) => void = () => {}
+  return {
+    send: (board: KitchenBoard) => send(board),
+    watchKitchenBoard: (onBoard: (board: KitchenBoard) => void) => {
+      send = onBoard
+      return () => {}
+    },
+  }
+}
+
 describe('KitchenPage live updates', () => {
   const base: KitchenOrder = {
     id: '#50', customer: 'Noa', pickupTime: '21:40', status: 'new',
     lines: [{ quantity: 1, name: 'Café', variant: '' }], phone: '600 000 050', totalCents: 150,
   }
-  const boards = (): KitchenBoard[] => [
-    { shiftOpenedAt: '19:02', orders: [], delivered: [] },
-    { shiftOpenedAt: '19:02', orders: [base], delivered: [] },
-    { shiftOpenedAt: '19:02', orders: [base], delivered: [] },
-  ]
-  const polled = () => {
-    const queue = boards()
-    return async () => queue.shift() ?? { shiftOpenedAt: '19:02', orders: [base], delivered: [] }
-  }
+  const empty: KitchenBoard = { shiftOpenedAt: '19:02', orders: [], delivered: [] }
+  const withNoa: KitchenBoard = { shiftOpenedAt: '19:02', orders: [base], delivered: [] }
 
-  it('picks up orders from other devices and chimes once for each new one', async () => {
-    renderApp('/cocina', { getKitchenBoard: polled() })
+  it('shows orders as the server sends them, and chimes once for each new one', async () => {
+    const feed = boardFeed()
+    renderApp('/cocina', { getKitchenBoard: async () => empty, watchKitchenBoard: feed.watchKitchenBoard })
     await screen.findByText('No hay pedidos nuevos.')
+    await act(() => Promise.resolve())
     expect(playChime).not.toHaveBeenCalled()
 
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    act(() => feed.send(withNoa))
     expect(await screen.findByRole('article', { name: 'Pedido #50' })).toBeInTheDocument()
     expect(playChime).toHaveBeenCalledTimes(1)
 
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    act(() => feed.send(withNoa))
     expect(playChime).toHaveBeenCalledTimes(1)
   })
 
   it('stays quiet when the sound is off', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderApp('/cocina', { getKitchenBoard: polled() })
+    const feed = boardFeed()
+    renderApp('/cocina', { getKitchenBoard: async () => empty, watchKitchenBoard: feed.watchKitchenBoard })
 
     await user.click(await screen.findByRole('button', { name: 'Toca para activar el sonido' }))
     await user.click(await screen.findByRole('button', { name: 'Sonido activo' }))
     expect(await screen.findByRole('button', { name: 'Sonido apagado' })).toBeInTheDocument()
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    act(() => feed.send(withNoa))
 
     expect(await screen.findByRole('article', { name: 'Pedido #50' })).toBeInTheDocument()
     expect(playChime).not.toHaveBeenCalled()
   })
 
-  it('keeps the board when a refresh fails', async () => {
-    let calls = 0
-    renderApp('/cocina', {
-      getKitchenBoard: async () => {
-        calls += 1
-        if (calls > 1) throw new Error('offline')
-        return { shiftOpenedAt: '19:02', orders: [base], delivered: [] }
+  it('stops watching when the page is left', async () => {
+    let stopped = false
+    const { unmount } = renderApp('/cocina', {
+      getKitchenBoard: async () => empty,
+      watchKitchenBoard: () => () => {
+        stopped = true
       },
     })
-    await screen.findByRole('article', { name: 'Pedido #50' })
+    await screen.findByText('No hay pedidos nuevos.')
 
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    unmount()
 
-    expect(screen.getByRole('article', { name: 'Pedido #50' })).toBeInTheDocument()
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo actualizar')
+    expect(stopped).toBe(true)
   })
 
   it('moves the clock and the countdown forward', async () => {

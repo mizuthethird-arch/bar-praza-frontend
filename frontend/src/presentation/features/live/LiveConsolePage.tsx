@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { lastEventId, summarizeConsole, type LiveEvent, type LiveEventKind } from '../../../domain/live/live-console'
 import { useServices } from '../../app/use-services'
 import { useAsync } from '../../hooks/use-async'
 import { AsyncView } from '../../ui/async-view'
-import { card, outlineButton, primaryButton, sectionTitle } from '../../ui/classes'
+import { card, primaryButton, sectionTitle } from '../../ui/classes'
 import { Page, PageHeader, Reveal } from '../../ui/Page'
-
-const REFRESH_MS = 5000
 
 const kindLabel: Record<LiveEventKind, string> = {
   received: 'Nuevo',
@@ -33,27 +31,39 @@ function Stat({ label, value, alert }: { label: string; value: number; alert?: b
   )
 }
 
+// Adds an event to the list unless the list already has it (or a later one).
+const addEvent = (list: LiveEvent[], event: LiveEvent) => (event.id > lastEventId(list) ? [...list, event] : list)
+
 function LiveConsole({ initial }: { initial: LiveEvent[] }) {
   const services = useServices()
   const [events, setEvents] = useState(initial)
   const [paused, setPaused] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // While paused, new events wait here and join the list on resume, so the list stays still under the reader.
+  const [waiting, setWaiting] = useState<LiveEvent[]>([])
 
-  const refresh = useCallback(async () => {
-    try {
-      const fresh = await services.pollLiveEvents(lastEventId(events))
-      setEvents((current) => [...current, ...fresh.filter((event) => event.id > lastEventId(current))])
-      setError(null)
-    } catch {
-      setError('No se pudo actualizar')
-    }
-  }, [events, services])
+  // Read by the watch, which must not restart when the pause changes.
+  const pausedRef = useRef(false)
 
-  useEffect(() => {
-    if (paused) return
-    const timer = window.setInterval(() => void refresh(), REFRESH_MS)
-    return () => window.clearInterval(timer)
-  }, [paused, refresh])
+  useEffect(
+    () =>
+      services.watchLiveEvents((event) => {
+        if (pausedRef.current) setWaiting((current) => addEvent(current, event))
+        else setEvents((current) => addEvent(current, event))
+      }),
+    [services],
+  )
+
+  function pause() {
+    pausedRef.current = true
+    setPaused(true)
+  }
+
+  function resume() {
+    pausedRef.current = false
+    setPaused(false)
+    setEvents((current) => waiting.reduce(addEvent, current))
+    setWaiting([])
+  }
 
   const summary = summarizeConsole(events)
   const newestFirst = [...events].reverse()
@@ -61,17 +71,12 @@ function LiveConsole({ initial }: { initial: LiveEvent[] }) {
   return (
     <Page>
       <PageHeader
-        eyebrow={`Datos de demostración · ${paused ? 'en pausa' : 'se actualiza cada 5 s'}`}
+        eyebrow={`Datos de demostración · ${paused ? `en pausa · ${waiting.length} nuevos` : 'en tiempo real'}`}
         title="Consola en vivo"
         actions={
-          <>
-            <button type="button" onClick={() => void refresh()} className={`px-4 py-2 ${outlineButton}`}>
-              Actualizar
-            </button>
-            <button type="button" onClick={() => setPaused(!paused)} className={primaryButton}>
-              {paused ? 'Reanudar' : 'Pausar'}
-            </button>
-          </>
+          <button type="button" onClick={() => (paused ? resume() : pause())} className={primaryButton}>
+            {paused ? 'Reanudar' : 'Pausar'}
+          </button>
         }
       />
 
@@ -84,11 +89,6 @@ function LiveConsole({ initial }: { initial: LiveEvent[] }) {
       <Reveal>
         <section className={card}>
           <h2 className={sectionTitle}>Actividad</h2>
-          {error && (
-            <p role="alert" className="mt-3 text-sm text-red-400">
-              {error}
-            </p>
-          )}
           <ol className="mt-4 divide-y divide-neutral-800">
             {newestFirst.map((event) => (
               <li key={event.id} className="flex flex-wrap items-center gap-3 py-3 text-sm">

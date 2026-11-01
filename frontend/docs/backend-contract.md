@@ -107,9 +107,9 @@ Open, owned elsewhere:
 | `listCustomers` | `GET /customers` | `Customer[]` (`customers/customers.ts`). Each customer needs a stable `id`, because names repeat. |
 | `getReport` | `GET /reports/weekly` | `Report` (`reports/report.ts`) |
 | `getTeam` | `GET /team` | `TeamState` (`team/team.ts`) |
-| `getKitchenBoard` | `GET /kitchen/orders` | `KitchenBoard` (`kitchen/kitchen.ts`): shift start time, the active orders (`new`, `preparing`, `ready`) and `delivered`, the orders delivered and paid in the current shift, newest first, each with `deliveredAt`. The screen asks again every 15 s to pick up orders from other devices. |
+| `getKitchenBoard` | `GET /kitchen/orders` | `KitchenBoard` (`kitchen/kitchen.ts`): shift start time, the active orders (`new`, `preparing`, `ready`) and `delivered`, the orders delivered and paid in the current shift, newest first, each with `deliveredAt`. Changes from other devices arrive over the socket (section 6); this read is the first load. |
 | `listLiveEvents` | `GET /live-events` | `LiveEvent[]` (`live/live-console.ts`) |
-| `pollLiveEvents(afterId)` | `GET /live-events?after={id}` | `LiveEvent[]` with `id > afterId`. Event ids must only grow. |
+| `watchLiveEvents` | socket (section 6) | `LiveEvent` as each one happens. Event ids must only grow. |
 
 ## 4. Commands
 
@@ -175,11 +175,33 @@ invitation?) is open, for the user and the tech lead.
 1. The dashboard's `Order` (numeric `id`, `client`, `pickupTime`) and the order log's
    `OrderEntry` (string `id` such as `#44` or `B-12`) describe the same orders in two shapes.
    Should the backend serve one order model for both screens?
-2. Live console: polling every 5 s (what the frontend does now) or a push channel (websocket or
-   server-sent events)?
+2. Real time: the frontend expects a push channel (section 6), not polling. The backend confirms the
+   transport (WebSocket, as proposed, or server-sent events) and the message shapes.
 3. Session transport and length (ISS-4), and the response for an expired session.
 4. Invitations versus `addMember` (see the note under Team).
 5. Routes, versioning and error body format: the tech lead decides. The proposal in this
    document is only a starting point.
 6. PIN unlock: how the PIN is set and stored per person, how a device is remembered, and how long
    the lock lasts (and who can clear it before that).
+
+## 6. Real time (proposal)
+
+The board and the live console do not poll. They watch a WebSocket that the backend pushes to. Every change
+arrives as one JSON text message, so a change made on the mobile app (`tomar pedidos`) reaches the kitchen
+board at once. The frontend reads it in `infrastructure/realtime/socket-realtime.ts`; while nothing watches,
+the socket is closed, and a dropped socket reconnects with a growing wait (1, 2, 5, 10, then 30 seconds).
+
+| Direction | Message | When |
+|---|---|---|
+| server → client | `{ "type": "kitchen.board", "board": KitchenBoard }` | On connect, and after every change to the kitchen board (from any device). The full board, not a diff. |
+| server → client | `{ "type": "live.event", "event": LiveEvent }` | Each event as it happens. Ids only grow. |
+
+Rules:
+1. The handshake is a normal request on the same site, so the session cookie (`bp_session`) is sent with it. An
+   expired or revoked session closes the socket. The frontend then keeps retrying; sending the person back to
+   `/login` on a 401 mid-session is still open (section 2).
+2. Unknown message types are ignored, so the backend can add messages without breaking the frontend.
+3. The socket address is set at build time with `VITE_REALTIME_URL` (for example `wss://…/ws`). Without it the demo
+   build uses the mock's own changes.
+4. Open: the socket route and whether the server pushes a full board on connect only, or also after a reconnect.
+

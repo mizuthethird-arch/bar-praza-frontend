@@ -56,5 +56,7 @@ export interface AppServices {
   cancelKitchenOrder(id: string): Promise<KitchenBoard>
   closeKitchenShift(): Promise<KitchenBoard>
   listLiveEvents(): Promise<LiveEvent[]>
-  pollLiveEvents(afterId: number): Promise<LiveEvent[]>
+  // Each change from any device, as it happens. Each returns the function that stops the watch.
+  watchKitchenBoard(onBoard: (board: KitchenBoard) => void): () => void
+  watchLiveEvents(onEvent: (event: LiveEvent) => void): () => void
 }

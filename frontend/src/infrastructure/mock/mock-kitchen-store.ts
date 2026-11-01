@@ -1,7 +1,7 @@
 // The kitchen board, kept in browser storage in the demo build. Every open tab reads and changes
 // the same board, as it would against the backend. Without storage, or when storage refuses to
 // work, the board lives in memory for this tab only.
-const KEY = 'barpraza.kitchenBoard'
+export const KEY = 'barpraza.kitchenBoard'
 
 export type BoardStorage = Pick<Storage, 'getItem' | 'setItem'>
 
