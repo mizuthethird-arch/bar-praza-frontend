@@ -93,4 +93,5 @@ export interface KitchenRepository {
   markReady(id: string): Promise<KitchenBoard>
   deliver(id: string): Promise<KitchenBoard>
   cancel(id: string): Promise<KitchenBoard>
+  closeShift(): Promise<KitchenBoard>
 }

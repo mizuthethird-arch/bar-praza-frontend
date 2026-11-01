@@ -8,6 +8,7 @@ import { cancelOrderIn, listOrderLog } from '../../application/order-log'
 import { addMemberTo, getTeam, removeMemberFrom, saveSettingsIn, setMemberActiveIn } from '../../application/manage-team'
 import {
   cancelKitchenOrderIn,
+  closeKitchenShiftIn,
   deliverKitchenOrderIn,
   getKitchenBoard,
   markKitchenOrderReadyIn,
@@ -86,6 +87,7 @@ export function createMockServices({ auth, pin }: Options): AppServices {
     markKitchenOrderReady: (id) => markKitchenOrderReadyIn(kitchen, id),
     deliverKitchenOrder: (id) => deliverKitchenOrderIn(kitchen, id),
     cancelKitchenOrder: (id) => cancelKitchenOrderIn(kitchen, id),
+    closeKitchenShift: () => closeKitchenShiftIn(kitchen),
     listLiveEvents: () => listLiveEvents(live),
     pollLiveEvents: (afterId) => pollLiveEvents(live, afterId),
   }

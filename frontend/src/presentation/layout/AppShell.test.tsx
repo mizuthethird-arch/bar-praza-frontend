@@ -78,6 +78,16 @@ describe('AppShell mobile menu', () => {
     expect(button).toHaveFocus()
   })
 
+  it('stays open for any key other than Escape', async () => {
+    renderShell()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir menú' }))
+    await screen.findByRole('dialog', { name: 'Menú' })
+    await userEvent.keyboard('a')
+
+    expect(screen.getByRole('dialog', { name: 'Menú' })).toBeInTheDocument()
+  })
+
   it('closes with the same button, now labelled Cerrar menú', async () => {
     renderShell()
 

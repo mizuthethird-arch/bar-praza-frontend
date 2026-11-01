@@ -1,6 +1,7 @@
 import type { KitchenRepository } from '../../application/ports'
 import {
   cancelKitchenOrder,
+  closeShift,
   completeDelivery,
   markReady,
   startPreparing,
@@ -87,5 +88,6 @@ export function createMockKitchenRepository({ now = () => new Date() }: Options 
     markReady: (id) => change((orders) => markReady(orders, id)),
     deliver: (id) => store.change((board) => completeDelivery(board, id, clockOf(now()))),
     cancel: (id) => change((orders) => cancelKitchenOrder(orders, id)),
+    closeShift: () => store.change((board) => closeShift(board, clockOf(now()))),
   }
 }

@@ -19,6 +19,12 @@ describe('mock session store', () => {
 describe('mock session store kept in browser storage', () => {
   afterEach(() => sessionStorage.clear())
 
+  it('writes the flag at once when it is created already signed in', () => {
+    createMockSessionStore({ active: true, storage: sessionStorage })
+
+    expect(sessionStorage.getItem(SESSION_KEY)).toBe('1')
+  })
+
   it('survives a reload: a new store on the same storage is still signed in', () => {
     createMockSessionStore({ storage: sessionStorage }).start()
 

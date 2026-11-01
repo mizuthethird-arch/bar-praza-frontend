@@ -140,8 +140,9 @@ Open, owned elsewhere:
 | `markKitchenOrderReady` | `POST /kitchen/orders/{id}/ready` | order id | `KitchenBoard` | Only a `preparing` order. |
 | `deliverKitchenOrder` | `POST /kitchen/orders/{id}/deliver` | order id | `KitchenBoard` | Only a `ready` order. The server stamps `deliveredAt` and moves the order from `orders` to the front of `delivered`. |
 | `cancelKitchenOrder` | `POST /kitchen/orders/{id}/cancel` | order id | `KitchenBoard` | Only a `new` order. It leaves the board. |
+| `closeKitchenShift` | `POST /kitchen/shift/close` | none | `KitchenBoard` | Sets `shiftClosedAt` (`HH:mm`) after the person confirms "Sí" in the pop-up. Closing a closed shift keeps the first time. The board then shows "Turno cerrado" and "Cerrar turno" is disabled. |
 
-Notes: the history belongs to the shift. When "Cerrar turno" is defined, the new shift starts with an empty history. "Late" is not stored; the screen works it out from the pickup time and the clock. Pickup
+Notes: the history belongs to the shift. "Cerrar turno" is built as a close marker only: the new shift does not yet start with an empty history, and orders can still change after the close. The history reset is open. "Late" is not stored; the screen works it out from the pickup time and the clock. Pickup
 times are `HH:mm`; the server decides how a pickup after midnight is sent. Each order carries its
 note, phone, lines and a payment note ("paga al recoger", "cobrar al entregar"). Nothing in the
 design says how the payment note is decided, so the owner of the order model must define it.
