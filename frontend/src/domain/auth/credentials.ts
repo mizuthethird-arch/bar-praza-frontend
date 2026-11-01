@@ -1,6 +1,8 @@
 export type Credentials = {
   email: string
   password: string
+  // Ticked by the person: the backend then remembers this device for 30 days (the PIN screen needs it).
+  rememberDevice?: boolean
 }
 
 // The limits the backend enforces on the login (backend docs/api-for-frontend.md, section 4).

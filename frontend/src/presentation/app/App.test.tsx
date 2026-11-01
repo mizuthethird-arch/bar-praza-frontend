@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { TooManyAttemptsError } from '../../domain/auth/errors'
+import { NoRememberedDeviceError, PinNotSetError, TooManyAttemptsError } from '../../domain/auth/errors'
 import { mockAccounts } from '../../infrastructure/mock/mock-accounts'
 import { renderApp } from '../../test/render-app'
 
@@ -191,5 +191,56 @@ describe('sign-out with the backend', () => {
     await userEvent.click(await screen.findByRole('button', { name: /cerrar sesión/i }))
 
     expect(await screen.findByRole('heading', { name: 'Hoy en la praza' })).toBeInTheDocument()
+  })
+})
+
+describe('PIN with the backend', () => {
+  it('hides the PIN button when no device is remembered', async () => {
+    const pinUnlock = {
+      getRememberedDevice: () => Promise.reject(new NoRememberedDeviceError()),
+      unlockWithPin: () => Promise.reject(new NoRememberedDeviceError()),
+    }
+    renderApp('/login', { pinUnlock }, { signedIn: false })
+
+    expect(await screen.findByRole('form', { name: /entrar al panel/i })).toBeInTheDocument()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(screen.queryByRole('button', { name: /desbloquear con pin/i })).not.toBeInTheDocument()
+  })
+
+  it('sends /login/pin back to the email login when no device is remembered', async () => {
+    const pinUnlock = {
+      getRememberedDevice: () => Promise.reject(new NoRememberedDeviceError()),
+      unlockWithPin: () => Promise.reject(new NoRememberedDeviceError()),
+    }
+    renderApp('/login/pin', { pinUnlock }, { signedIn: false })
+
+    expect(await screen.findByRole('form', { name: /entrar al panel/i })).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: /pin,/i })).not.toBeInTheDocument()
+  })
+
+  it('goes to the email login when the account has no PIN yet', async () => {
+    const pinUnlock = {
+      getRememberedDevice: () => Promise.resolve({ name: 'Owner Praza', initials: 'OP', email: owner.email, device: 'Chrome en Windows' }),
+      unlockWithPin: () => Promise.reject(new PinNotSetError()),
+    }
+    renderApp('/login/pin', { pinUnlock }, { signedIn: false })
+    await screen.findByRole('heading', { name: 'Hola, Owner Praza' })
+
+    for (const digit of '1234') await userEvent.click(screen.getByRole('button', { name: digit }))
+
+    expect(await screen.findByRole('form', { name: /entrar al panel/i })).toBeInTheDocument()
+  })
+
+  it('goes to the email login when the PIN is refused for a missing device', async () => {
+    const pinUnlock = {
+      getRememberedDevice: () => Promise.resolve({ name: 'Owner Praza', initials: 'OP', email: owner.email, device: 'Chrome en Windows' }),
+      unlockWithPin: () => Promise.reject(new NoRememberedDeviceError()),
+    }
+    renderApp('/login/pin', { pinUnlock }, { signedIn: false })
+    await screen.findByRole('heading', { name: 'Hola, Owner Praza' })
+
+    for (const digit of '1234') await userEvent.click(screen.getByRole('button', { name: digit }))
+
+    expect(await screen.findByRole('form', { name: /entrar al panel/i })).toBeInTheDocument()
   })
 })

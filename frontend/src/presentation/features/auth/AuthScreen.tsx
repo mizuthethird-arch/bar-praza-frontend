@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import type { Credentials } from '../../../domain/auth/credentials'
@@ -29,6 +29,24 @@ export function AuthScreen() {
   const signIn = useSignInMotion()
   const signedIn = useHasSession()
   const [leaving, setLeaving] = useState(false)
+  // The PIN is offered only where this device is remembered (the backend answers no_device otherwise).
+  const [hasDevice, setHasDevice] = useState<boolean | null>(null)
+  const getDevice = pinUnlock?.getRememberedDevice
+  useEffect(() => {
+    if (!getDevice) return
+    let current = true
+    getDevice().then(
+      () => {
+        if (current) setHasDevice(true)
+      },
+      () => {
+        if (current) setHasDevice(false)
+      },
+    )
+    return () => {
+      current = false
+    }
+  }, [getDevice])
 
   // The card leaves before the app opens; the app then tells its first page to rise in.
   async function handleLogin(credentials: Credentials) {
@@ -44,7 +62,8 @@ export function AuthScreen() {
 
   if (signedIn === null) return null
   if (signedIn) return <Navigate to={from} replace />
-  if (pinView && !pinUnlock) return <Navigate to="/login" replace />
+  // Without the PIN unlock, or without a remembered device, the PIN view goes back to the email login.
+  if (pinView && (!pinUnlock || hasDevice === false)) return <Navigate to="/login" replace />
 
   const shown = { opacity: 1, x: 0, transition: view.transition }
   // The email view leaves to the left and the PIN view comes in from the right, and back.
@@ -67,11 +86,11 @@ export function AuthScreen() {
         >
           <LoginForm
             onSubmit={handleLogin}
-            onPin={pinUnlock ? () => navigate('/login/pin', { state: { from } }) : undefined}
+            onPin={hasDevice ? () => navigate('/login/pin', { state: { from } }) : undefined}
           />
         </motion.div>
 
-        {pinUnlock && (
+        {pinUnlock && hasDevice !== false && (
           <motion.div
             className={`${STACK} ${pinView ? 'visible' : 'invisible'}`}
             aria-hidden={!pinView}
