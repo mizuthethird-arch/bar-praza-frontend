@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router'
 import { KitchenPage } from '../features/kitchen/KitchenPage'
 import { TestOrderPage } from '../features/kitchen/TestOrderPage'
 import { LiveConsolePage } from '../features/live/LiveConsolePage'
+import { ApiDocumentationPage } from '../features/api-docs/ApiDocumentationPage'
 import { AuthScreen } from '../features/auth/AuthScreen'
 import { CatalogPage } from '../features/catalog/CatalogPage'
 import { CustomersPage } from '../features/customers/CustomersPage'
@@ -31,6 +32,7 @@ function App() {
           <Route path="consola" element={<LiveConsolePage />} />
           <Route path="ajustes" element={<TeamPage />} />
           <Route path="informes" element={<ReportsPage />} />
+          <Route path="api-documentation" element={<ApiDocumentationPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
