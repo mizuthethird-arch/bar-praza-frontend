@@ -4,8 +4,10 @@ import {
   InvitationError,
   inviteStaff,
   MemberError,
+  removeMember,
   resendInvitation,
   setMemberActive,
+  setMemberPin,
   type Invitation,
   type StaffMember,
   updateMember,
@@ -135,7 +137,7 @@ describe('team rules', () => {
     expect(setMemberActive(off, 'm2', true)[1].active).toBe(true)
   })
 
-  it('keeps a deactivated member in the list, because staff are never deleted', () => {
+  it('keeps a deactivated member in the list', () => {
     expect(setMemberActive(members, 'm2', false).map((m) => m.id)).toEqual(['m1', 'm2'])
   })
 
@@ -143,3 +145,37 @@ describe('team rules', () => {
     expect(() => setMemberActive(members, 'm1', false)).toThrow()
   })
 })
+
+describe('setting a PIN', () => {
+  it('sets a 4-digit PIN for the member, and marks it as set', () => {
+    const result = setMemberPin(members, 'm2', '1234')
+
+    expect(result[1].pinSet).toBe(true)
+    expect(result[0]).toEqual(members[0])
+  })
+
+  it('refuses anything but 4 digits', () => {
+    for (const pin of ['123', '12345', '12a4', '']) {
+      expect(() => setMemberPin(members, 'm2', pin)).toThrow('El PIN tiene 4 cifras')
+    }
+  })
+
+  it('refuses a member that is not there any more', () => {
+    expect(() => setMemberPin(members, 'm9', '1234')).toThrow(MemberError)
+  })
+})
+
+describe('deleting a member', () => {
+  it('removes that member and keeps the others', () => {
+    expect(removeMember(members, 'm2').map((m) => m.id)).toEqual(['m1'])
+  })
+
+  it('never removes the last active owner', () => {
+    expect(() => removeMember(members, 'm1')).toThrow(MemberError)
+  })
+
+  it('refuses a member that is not there any more', () => {
+    expect(() => removeMember(members, 'm9')).toThrow(MemberError)
+  })
+})
+

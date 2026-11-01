@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { TeamRepository } from './ports'
-import { inviteMemberTo, saveSettingsIn, setMemberActiveIn } from './manage-team'
+import { inviteMemberTo, removeMemberFrom, saveSettingsIn, setMemberActiveIn, setMemberPinIn } from './manage-team'
 
 const repo = (): TeamRepository => {
   const done = vi.fn().mockResolvedValue({ members: [], invitations: [], settings: {} })
-  return { get: vi.fn(), inviteMember: done, setMemberActive: done, saveSettings: done } as unknown as TeamRepository
+  return { get: vi.fn(), inviteMember: done, setMemberActive: done, setMemberPin: done, removeMember: done, saveSettings: done } as unknown as TeamRepository
 }
 
 describe('team use cases', () => {
@@ -14,6 +14,22 @@ describe('team use cases', () => {
     await inviteMemberTo(team, { email: 'a@b.es', role: 'kitchen' })
 
     expect(team.inviteMember).toHaveBeenCalledWith({ email: 'a@b.es', role: 'kitchen' })
+  })
+
+  it('deletes a member through the repository', async () => {
+    const team = repo()
+
+    await removeMemberFrom(team, 'm2')
+
+    expect(team.removeMember).toHaveBeenCalledWith('m2')
+  })
+
+  it('sets a PIN through the repository, unchanged', async () => {
+    const team = repo()
+
+    await setMemberPinIn(team, 'm2', '1234')
+
+    expect(team.setMemberPin).toHaveBeenCalledWith('m2', '1234')
   })
 
   it('deactivates and reactivates members through the repository', async () => {

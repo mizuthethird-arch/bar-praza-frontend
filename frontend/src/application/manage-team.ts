@@ -14,6 +14,10 @@ export const resendInvitationIn = (team: TeamRepository, id: string) => team.res
 export const setMemberActiveIn = (team: TeamRepository, id: string, active: boolean) =>
   team.setMemberActive(id, active)
 
+export const setMemberPinIn = (team: TeamRepository, id: string, pin: string) => team.setMemberPin(id, pin)
+
+export const removeMemberFrom = (team: TeamRepository, id: string) => team.removeMember(id)
+
 export const updateMemberIn = (team: TeamRepository, id: string, changes: { name: string; role: Role }) =>
   team.updateMember(id, changes)
 

@@ -104,4 +104,70 @@ describe('TeamPage edge cases', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo guardar el cambio')
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
+
+  it('will not save PINs that do not match, and says so in the pop-up', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Poner PIN de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Poner PIN · [Uxía]' })
+    await user.type(within(dialog).getByLabelText(/PIN nuevo/), '1234')
+    await user.type(within(dialog).getByLabelText('Repite el PIN'), '1235')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar PIN' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Los PIN no coinciden')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('refuses a PIN that is not 4 digits, and keeps the pop-up open', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Poner PIN de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Poner PIN · [Uxía]' })
+    await user.type(within(dialog).getByLabelText(/PIN nuevo/), '123')
+    await user.type(within(dialog).getByLabelText('Repite el PIN'), '123')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar PIN' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('El PIN tiene 4 cifras')
+  })
+
+  it('tells the user when the PIN cannot be saved', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { setMemberPin: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Poner PIN de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Poner PIN · [Uxía]' })
+    await user.type(within(dialog).getByLabelText(/PIN nuevo/), '1234')
+    await user.type(within(dialog).getByLabelText('Repite el PIN'), '1234')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar PIN' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo guardar el PIN')
+  })
+
+  it('will not delete the last active owner, and says so in the pop-up', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Titular]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Titular]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Eliminar miembro' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Sí, eliminar' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('al menos un titular')
+    expect(screen.getByText('[Titular]')).toBeInTheDocument()
+  })
+
+  it('tells the user when the deletion fails, and keeps the pop-up open', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { removeMember: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Editar [Xosé]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Xosé]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Eliminar miembro' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Sí, eliminar' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo eliminar el miembro')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
 })

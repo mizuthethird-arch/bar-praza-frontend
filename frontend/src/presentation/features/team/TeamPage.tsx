@@ -6,6 +6,7 @@ import {
   type BarSettings,
   type InvitableRole,
   type Role,
+  type StaffMember,
   type TeamState,
 } from '../../../domain/team/team'
 import { useServices } from '../../app/use-services'
@@ -16,6 +17,7 @@ import { Page, PageHeader, Reveal } from '../../ui/Page'
 import { useRowMotion } from '../../ui/motion'
 import { Toast } from '../../ui/Toast'
 import { MemberEditDialog } from './MemberEditDialog'
+import { PinDialog } from './PinDialog'
 
 const roleLabel: Record<Role, string> = { owner: 'Titular', kitchen: 'Cocina', bar: 'Barra' }
 
@@ -68,9 +70,11 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<InvitableRole>('kitchen')
   const [error, setError] = useState<string | null>(null)
-  // The member whose edit pop-up is open.
+  // The member whose edit pop-up is open, and the member whose PIN pop-up is open.
   const [editingId, setEditingId] = useState<string | null>(null)
   const editing = team.members.find((member) => member.id === editingId) ?? null
+  const [pinId, setPinId] = useState<string | null>(null)
+  const pinMember = team.members.find((member) => member.id === pinId) ?? null
 
   async function run(action: Promise<TeamState>, failure: string) {
     try {
@@ -105,6 +109,20 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
   async function saveEdit(id: string, changes: { name: string; role: Role }) {
     onChange(await services.updateMember(id, changes))
     setEditingId(null)
+  }
+
+  // Deleting is confirmed inside the edit pop-up. The pop-up keeps itself open with the error when the rules refuse it.
+  async function deleteMember(member: StaffMember) {
+    onChange(await services.removeMember(member.id))
+    setEditingId(null)
+    onNotice(`${member.name} eliminado del equipo`)
+  }
+
+  // The PIN is never shown back, so the notice is the only confirmation.
+  async function savePin(member: StaffMember, pin: string) {
+    onChange(await services.setMemberPin(member.id, pin))
+    setPinId(null)
+    onNotice(`PIN guardado para ${member.name}`)
   }
 
   const ownerMessage = 'Tiene que quedar al menos un titular activo'
@@ -142,7 +160,15 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
                   <button type="button" aria-label={`Editar ${member.name}`} onClick={() => setEditingId(member.id)} className={`${textButton} mr-4`}>
                     Editar
                   </button>
-                  {/* Staff are never deleted: a member who leaves is deactivated, and can be reactivated. */}
+                  <button
+                    type="button"
+                    aria-label={`${member.pinSet ? 'Cambiar' : 'Poner'} PIN de ${member.name}`}
+                    onClick={() => setPinId(member.id)}
+                    className={`${textButton} mr-4`}
+                  >
+                    {member.pinSet ? 'Cambiar PIN' : 'Poner PIN'}
+                  </button>
+                  {/* Deactivating keeps the history; deleting is only offered from the edit pop-up. */}
                   {member.active ? (
                     <button
                       type="button"
@@ -232,7 +258,16 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
             key={editing.id}
             member={editing}
             onSave={(changes) => saveEdit(editing.id, changes)}
+            onDelete={() => deleteMember(editing)}
             onClose={() => setEditingId(null)}
+          />
+        )}
+        {pinMember && (
+          <PinDialog
+            key={pinMember.id}
+            member={pinMember}
+            onSave={(pin) => savePin(pinMember, pin)}
+            onClose={() => setPinId(null)}
           />
         )}
       </AnimatePresence>

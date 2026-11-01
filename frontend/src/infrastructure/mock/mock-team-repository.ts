@@ -4,6 +4,8 @@ import {
   inviteStaff,
   resendInvitation,
   setMemberActive,
+  removeMember,
+  setMemberPin,
   updateMember,
   type StaffMember,
   type TeamState,
@@ -44,6 +46,8 @@ export function createMockTeamRepository({ now = () => new Date() }: { now?: () 
     resendInvitation: (id) =>
       store.change((state) => ({ ...state, invitations: resendInvitation(state.invitations, id, dayOf(now())) })),
     setMemberActive: (id, active) => changeMembers((members) => setMemberActive(members, id, active)),
+    setMemberPin: (id, pin) => changeMembers((members) => setMemberPin(members, id, pin)),
+    removeMember: (id) => changeMembers((members) => removeMember(members, id)),
     updateMember: (id, changes) => changeMembers((members) => updateMember(members, id, changes)),
     saveSettings: (settings) => store.change((state) => ({ ...state, settings })),
   }

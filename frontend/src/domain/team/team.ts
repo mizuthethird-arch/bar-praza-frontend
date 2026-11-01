@@ -1,3 +1,5 @@
+import { isValidPin } from '../auth/pin'
+
 export type Role = 'owner' | 'kitchen' | 'bar'
 
 // Only kitchen and bar staff can be invited. The owner is set up once, for the restaurant (D-1, SCH-3).
@@ -47,7 +49,7 @@ export const INVITATION_DAYS = 7
 const isActiveOwner = (member: StaffMember) => member.role === 'owner' && member.active
 
 function assertKeepsAnOwner(before: StaffMember[], after: StaffMember[]) {
-  if (before.some(isActiveOwner) && !after.some(isActiveOwner)) throw new Error('At least one active owner is required')
+  if (before.some(isActiveOwner) && !after.some(isActiveOwner)) throw new MemberError('Tiene que quedar al menos un titular activo')
 }
 
 export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
@@ -106,10 +108,24 @@ export function updateMember(members: StaffMember[], id: string, { name, role }:
   return members.map((item) => (item.id === id ? { ...item, name: trimmed, role } : item))
 }
 
-// Staff are never deleted. Leaving the bar means deactivating: the person keeps their history and can come back (reactivate).
+// Sets or changes a member's PIN. Only whether a PIN is set is kept here: the PIN itself is held by the backend.
+export function setMemberPin(members: StaffMember[], id: string, pin: string): StaffMember[] {
+  if (!members.some((member) => member.id === id)) throw new MemberError('Ese miembro ya no existe')
+  if (!isValidPin(pin)) throw new MemberError('El PIN tiene 4 cifras')
+  return members.map((member) => (member.id === id ? { ...member, pinSet: true } : member))
+}
+
+// Deactivating keeps the person's history, and they can be reactivated later.
 export function setMemberActive(members: StaffMember[], id: string, active: boolean): StaffMember[] {
   const next = members.map((member) => (member.id === id ? { ...member, active } : member))
   assertKeepsAnOwner(members, next)
   return next
 }
 
+// Deletes a member. It is only offered from the edit pop-up, after a confirmation. The last active owner stays.
+export function removeMember(members: StaffMember[], id: string): StaffMember[] {
+  if (!members.some((member) => member.id === id)) throw new MemberError('Ese miembro ya no existe')
+  const next = members.filter((member) => member.id !== id)
+  assertKeepsAnOwner(members, next)
+  return next
+}

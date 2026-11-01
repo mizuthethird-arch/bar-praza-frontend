@@ -126,6 +126,34 @@ describe('TeamPage', () => {
     expect(within(dialog).getByText('Titular (no se puede cambiar)')).toBeInTheDocument()
   })
 
+  it('sets a PIN for a staff member in a pop-up, and confirms it with a notice', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Poner PIN de [Uxía]' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Poner PIN · [Uxía]' })
+    await user.type(within(dialog).getByLabelText(/PIN nuevo/), '1234')
+    await user.type(within(dialog).getByLabelText('Repite el PIN'), '1234')
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar PIN' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('PIN guardado para [Uxía]')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    const row = screen.getByText('[Uxía]').closest('tr')!
+    expect(within(row).getByText('Configurado')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cambiar PIN de [Uxía]' })).toBeInTheDocument()
+  })
+
+  it('keeps only digits in the PIN fields', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Poner PIN de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Poner PIN · [Uxía]' })
+
+    await user.type(within(dialog).getByLabelText(/PIN nuevo/), 'a1b2c3d4e5')
+
+    expect(within(dialog).getByLabelText(/PIN nuevo/)).toHaveValue('1234')
+  })
+
   it('offers only kitchen and bar, never the owner', async () => {
     renderApp('/ajustes')
 
@@ -154,6 +182,32 @@ describe('TeamPage', () => {
 
     await user.click(within(row).getByRole('button', { name: 'Reactivar [Uxía]' }))
     expect(await within(row).findByText('Activo', { selector: 'span' })).toBeInTheDocument()
+  })
+
+  it('deletes a staff member from the edit pop-up, once confirmed', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Xosé]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Xosé]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Eliminar miembro' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Sí, eliminar' }))
+
+    await waitFor(() => expect(screen.queryByText('[Xosé]')).not.toBeInTheDocument())
+    expect(screen.getByRole('status')).toHaveTextContent('[Xosé] eliminado del equipo')
+  })
+
+  it('keeps the member when the deletion is not confirmed', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Xosé]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Xosé]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Eliminar miembro' }))
+    await user.click(within(dialog).getByRole('button', { name: 'No' }))
+
+    expect(within(dialog).queryByRole('button', { name: 'Sí, eliminar' })).not.toBeInTheDocument()
+    expect(screen.getByText('[Xosé]')).toBeInTheDocument()
   })
 
   it('never offers to delete a staff member', async () => {

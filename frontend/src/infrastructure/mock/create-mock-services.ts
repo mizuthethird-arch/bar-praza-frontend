@@ -13,6 +13,8 @@ import {
   updateMemberIn,
   saveSettingsIn,
   setMemberActiveIn,
+  removeMemberFrom,
+  setMemberPinIn,
 } from '../../application/manage-team'
 import {
   cancelKitchenOrderIn,
@@ -96,6 +98,8 @@ export function createMockServices({ auth, pin, kitchenStorage, realtime }: Opti
     resendInvitation: (id) => resendInvitationIn(team, id),
     updateMember: (id, changes) => updateMemberIn(team, id, changes),
     setMemberActive: (id, active) => setMemberActiveIn(team, id, active),
+    setMemberPin: (id, pin) => setMemberPinIn(team, id, pin),
+    removeMember: (id) => removeMemberFrom(team, id),
     saveSettings: (settings) => saveSettingsIn(team, settings),
     getKitchenBoard: () => getKitchenBoard(kitchen),
     watchKitchenBoard: (onBoard) => (realtime ? realtime.watchKitchenBoard(onBoard) : watchKitchenBoardIn(kitchen, onBoard)),
