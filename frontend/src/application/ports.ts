@@ -5,7 +5,7 @@ import type { Customer } from '../domain/customers/customers'
 import type { Product } from '../domain/menu/product'
 import type { OrderEntry } from '../domain/orders/order-log'
 import type { Report } from '../domain/reports/report'
-import type { BarSettings, InvitableRole, TeamState } from '../domain/team/team'
+import type { BarSettings, InvitableRole, Role, TeamState } from '../domain/team/team'
 import type { StockMovement, StockState } from '../domain/stock/stock'
 import type { Dish } from '../domain/menu/dish'
 import type { Order } from '../domain/orders/order'
@@ -81,6 +81,7 @@ export interface TeamRepository {
   resendInvitation(id: string): Promise<TeamState>
   setMemberActive(id: string, active: boolean): Promise<TeamState>
   removeMember(id: string): Promise<TeamState>
+  updateMember(id: string, changes: { name: string; role: Role }): Promise<TeamState>
   saveSettings(settings: BarSettings): Promise<TeamState>
 }
 

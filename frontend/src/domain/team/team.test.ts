@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { cancelInvitation, InvitationError, inviteStaff, removeMember, resendInvitation, setMemberActive, type Invitation, type StaffMember } from './team'
+import {
+  cancelInvitation,
+  InvitationError,
+  inviteStaff,
+  MemberError,
+  removeMember,
+  resendInvitation,
+  setMemberActive,
+  type Invitation,
+  type StaffMember,
+  updateMember,
+} from './team'
 
 const members: StaffMember[] = [
   { id: 'm1', name: 'Titular', role: 'owner', active: true, pinSet: true, lastAccess: null, device: null },
@@ -89,6 +100,32 @@ describe('resending an invitation', () => {
 
   it('refuses an invitation that is not there any more', () => {
     expect(() => resendInvitation([], 'i9', '2026-11-01')).toThrow(InvitationError)
+  })
+})
+
+describe('editing a staff member', () => {
+  it('changes the name, trimmed, and the role of a kitchen or bar member', () => {
+    const result = updateMember(members, 'm2', { name: '  Uxía Pérez ', role: 'bar' })
+
+    expect(result[1]).toEqual({ ...members[1], name: 'Uxía Pérez', role: 'bar' })
+    expect(result[0]).toEqual(members[0])
+  })
+
+  it('refuses a blank name', () => {
+    expect(() => updateMember(members, 'm2', { name: '   ', role: 'kitchen' })).toThrow(new MemberError('Indica un nombre'))
+  })
+
+  it('keeps the owner role fixed, though the owner name can change', () => {
+    expect(() => updateMember(members, 'm1', { name: 'Titular', role: 'bar' })).toThrow('El titular no puede cambiar de rol')
+    expect(updateMember(members, 'm1', { name: 'Ana', role: 'owner' })[0].name).toBe('Ana')
+  })
+
+  it('does not make anyone the owner', () => {
+    expect(() => updateMember(members, 'm2', { name: 'Uxía', role: 'owner' })).toThrow('Solo se puede cambiar entre cocina y barra')
+  })
+
+  it('refuses a member that is not there any more', () => {
+    expect(() => updateMember(members, 'm9', { name: 'Nadie', role: 'bar' })).toThrow(MemberError)
   })
 })
 

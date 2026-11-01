@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { InvitationError } from '../../../domain/team/team'
@@ -79,5 +79,30 @@ describe('TeamPage edge cases', () => {
     await user.click(await screen.findByRole('button', { name: 'Reenviar invitación a x@bar.es' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo reenviar la invitación')
+  })
+
+  it('will not save a blank name, and says so in the pop-up', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+    await user.clear(within(dialog).getByLabelText('Nombre'))
+
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Indica un nombre')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('tells the user when the change cannot be saved, and keeps the pop-up open', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { updateMember: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo guardar el cambio')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })

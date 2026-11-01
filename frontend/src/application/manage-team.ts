@@ -1,4 +1,4 @@
-import type { BarSettings, InvitableRole } from '../domain/team/team'
+import type { BarSettings, InvitableRole, Role } from '../domain/team/team'
 import type { TeamRepository } from './ports'
 
 export const getTeam = (team: TeamRepository) => team.get()
@@ -15,6 +15,9 @@ export const setMemberActiveIn = (team: TeamRepository, id: string, active: bool
   team.setMemberActive(id, active)
 
 export const removeMemberFrom = (team: TeamRepository, id: string) => team.removeMember(id)
+
+export const updateMemberIn = (team: TeamRepository, id: string, changes: { name: string; role: Role }) =>
+  team.updateMember(id, changes)
 
 export async function saveSettingsIn(team: TeamRepository, settings: BarSettings) {
   if (settings.barName.trim() === '') throw new Error('The bar needs a name')

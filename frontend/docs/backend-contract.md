@@ -165,6 +165,7 @@ The board duplicates the order log (Pedidos): see open question 1 below.
 | `cancelInvitation` | `DELETE /team/invitations/{id}` | invitation id | `TeamState` | Only a pending invitation can be cancelled; its link stops working at once. Unknown id is an error. |
 | `resendInvitation` | `POST /team/invitations/{id}/resend` | invitation id | `TeamState` | Sends the same invitation again: the expiry becomes 7 days from the day it is resent (D-2). Refused when the same email has another invitation still in its days. Unknown id is an error. |
 | `setMemberActive` | `PATCH /team/members/{id}` | `{ active }` | `TeamState` | At least one active owner must remain. |
+| `updateMember` | `PATCH /team/members/{id}` (same endpoint as `setMemberActive`, partial body) | `{ name?, role?: 'kitchen' \| 'bar' }` | `TeamState` | Changes a member's name (trimmed, not blank) and role. The owner's role is fixed, and nobody can become the owner (D-1, SCH-3). Unknown id is an error. |
 | `removeMember` | `DELETE /team/members/{id}` | member id | `TeamState` | At least one active owner must remain. |
 | `saveSettings` | `PUT /team/settings` | `BarSettings` | `TeamState` | `barName` required and trimmed. |
 

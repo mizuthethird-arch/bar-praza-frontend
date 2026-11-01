@@ -92,6 +92,20 @@ export function resendInvitation(invitations: Invitation[], id: string, today: s
   return invitations.map((item) => (item.id === id ? { ...item, expiresOn: addDays(today, INVITATION_DAYS) } : item))
 }
 
+// Thrown when an edit breaks a rule. The message is for the person, so the page shows it as it is.
+export class MemberError extends Error {}
+
+// Changes a member's name and role. The owner's role is fixed, and nobody else can become the owner (D-1, SCH-3).
+export function updateMember(members: StaffMember[], id: string, { name, role }: { name: string; role: Role }): StaffMember[] {
+  const member = members.find((item) => item.id === id)
+  if (!member) throw new MemberError('Ese miembro ya no existe')
+  const trimmed = name.trim()
+  if (trimmed === '') throw new MemberError('Indica un nombre')
+  if (member.role === 'owner' && role !== 'owner') throw new MemberError('El titular no puede cambiar de rol')
+  if (member.role !== 'owner' && role === 'owner') throw new MemberError('Solo se puede cambiar entre cocina y barra')
+  return members.map((item) => (item.id === id ? { ...item, name: trimmed, role } : item))
+}
+
 export function setMemberActive(members: StaffMember[], id: string, active: boolean): StaffMember[] {
   const next = members.map((member) => (member.id === id ? { ...member, active } : member))
   assertKeepsAnOwner(members, next)
