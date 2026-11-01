@@ -42,6 +42,36 @@ describe('kitchen sound when the browser holds it back', () => {
     expect(await screen.findByRole('button', { name: 'Toca para activar el sonido' })).toBeInTheDocument()
   })
 
+  it('chimes once for each order that arrives in the same refresh', async () => {
+    const demo = createDemoServices({ loginDelayMs: 0, signedIn: true })
+    const first = await demo.getKitchenBoard()
+    const order = (id: string) => ({ id, customer: 'Noa', pickupTime: '21:40', status: 'new' as const, phone: '600 000 050', totalCents: 500, lines: [{ quantity: 1, name: 'Agua', variant: '' }] })
+    const burst = { ...first, orders: [...first.orders, order('#51'), order('#52'), order('#53')] }
+    let polls = 0
+    renderApp('/cocina', { getKitchenBoard: async () => (++polls === 1 ? first : burst) })
+    await screen.findByRole('heading', { level: 1, name: 'Pedidos de cocina' })
+
+    await act(() => vi.advanceTimersByTimeAsync(15000))
+
+    expect(playChime).toHaveBeenCalledWith(3)
+  })
+
+  it('chimes at once when another tab of the demo build changes the board, without waiting for the refresh', async () => {
+    const demo = createDemoServices({ loginDelayMs: 0, signedIn: true })
+    const first = await demo.getKitchenBoard()
+    const order = (id: string) => ({ id, customer: 'Noa', pickupTime: '21:40', status: 'new' as const, phone: '600 000 050', totalCents: 500, lines: [{ quantity: 1, name: 'Agua', variant: '' }] })
+    const changed = { ...first, orders: [...first.orders, order('#60'), order('#61')] }
+    renderApp('/cocina', { getKitchenBoard: async () => first })
+    await screen.findByRole('heading', { level: 1, name: 'Pedidos de cocina' })
+    await act(() => Promise.resolve())
+
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'barpraza.kitchenBoard', newValue: JSON.stringify(changed) }))
+    })
+
+    expect(playChime).toHaveBeenCalledWith(2)
+  })
+
   it('becomes active on a press when the browser then lets the page make sound', async () => {
     vi.mocked(unlockSound).mockImplementation(() => Promise.resolve(true))
     renderApp('/cocina', { getKitchenBoard: await pollsWithNewOrder() })
