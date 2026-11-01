@@ -7,6 +7,7 @@ import { AsyncView } from '../../ui/async-view'
 import { bodyCell, card, fieldLabel, headCell, inputClass, primaryButton, sectionTitle, textButton } from '../../ui/classes'
 import { Page, PageHeader, Reveal } from '../../ui/Page'
 import { useRowMotion } from '../../ui/motion'
+import { Toast } from '../../ui/Toast'
 
 const roleLabel: Record<Role, string> = { owner: 'Titular', kitchen: 'Cocina', bar: 'Barra' }
 
@@ -51,7 +52,7 @@ const invitableLabel: Record<InvitableRole, string> = { kitchen: 'Cocina', bar: 
 // A YYYY-MM-DD day as it is written on screen: 08/11/2026.
 const formatDay = (day: string) => day.split('-').reverse().join('/')
 
-function StaffCard({ team, onChange }: { team: TeamState; onChange: (state: TeamState) => void }) {
+function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (state: TeamState) => void; onNotice: (text: string) => void }) {
   const services = useServices()
   const rowMotion = useRowMotion()
   // The card's size follows its rows as they are added and removed. Only the size animates, so the text does not stretch.
@@ -79,6 +80,13 @@ function StaffCard({ team, onChange }: { team: TeamState; onChange: (state: Team
       setError(null)
     } catch (failure) {
       setError(failure instanceof InvitationError ? failure.message : 'No se pudo enviar la invitación')
+    }
+  }
+
+  // The notice is shown once the invitation is sent again, so it never claims a send that failed.
+  async function resend(email: string, id: string) {
+    if (await run(services.resendInvitation(id), 'No se pudo reenviar la invitación')) {
+      onNotice(`Se enviará la invitación a ${email}`)
     }
   }
 
@@ -146,6 +154,14 @@ function StaffCard({ team, onChange }: { team: TeamState; onChange: (state: Team
                 <td className={bodyCell}>—</td>
                 <td className={bodyCell}>Caduca el {formatDay(invitation.expiresOn)}</td>
                 <td className={`${bodyCell} whitespace-nowrap text-right`}>
+                  <button
+                    type="button"
+                    aria-label={`Reenviar invitación a ${invitation.email}`}
+                    onClick={() => void resend(invitation.email, invitation.id)}
+                    className={`${textButton} mr-4`}
+                  >
+                    Reenviar
+                  </button>
                   <button
                     type="button"
                     aria-label={`Anular invitación de ${invitation.email}`}
@@ -243,6 +259,7 @@ export function TeamPage() {
   const services = useServices()
   const state = useAsync(services.getTeam)
   const [changed, setChanged] = useState<TeamState | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   return (
     <AsyncView state={state}>
@@ -251,9 +268,10 @@ export function TeamPage() {
         return (
           <Page>
             <PageHeader eyebrow="Datos de demostración" title="Personal y ajustes" />
+            <Toast message={notice} onDone={() => setNotice(null)} />
             <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
               <Reveal className="min-w-0">
-                <StaffCard team={team} onChange={setChanged} />
+                <StaffCard team={team} onChange={setChanged} onNotice={setNotice} />
               </Reveal>
               <Reveal className="min-w-0">
                 <SettingsCard settings={loaded.settings} onSaved={setChanged} />

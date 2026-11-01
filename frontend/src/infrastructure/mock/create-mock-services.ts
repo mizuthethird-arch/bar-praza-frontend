@@ -5,7 +5,15 @@ import { getScheduleOverview } from '../../application/get-schedule-overview'
 import { isSignedIn, login, logout } from '../../application/login'
 import { getRememberedDevice, unlockWithPin } from '../../application/pin-unlock'
 import { cancelOrderIn, listOrderLog } from '../../application/order-log'
-import { cancelInvitationIn, getTeam, inviteMemberTo, removeMemberFrom, saveSettingsIn, setMemberActiveIn } from '../../application/manage-team'
+import {
+  cancelInvitationIn,
+  getTeam,
+  inviteMemberTo,
+  removeMemberFrom,
+  resendInvitationIn,
+  saveSettingsIn,
+  setMemberActiveIn,
+} from '../../application/manage-team'
 import {
   cancelKitchenOrderIn,
   closeKitchenShiftIn,
@@ -85,6 +93,7 @@ export function createMockServices({ auth, pin, kitchenStorage, realtime }: Opti
     getTeam: () => getTeam(team),
     inviteMember: (invite) => inviteMemberTo(team, invite),
     cancelInvitation: (id) => cancelInvitationIn(team, id),
+    resendInvitation: (id) => resendInvitationIn(team, id),
     setMemberActive: (id, active) => setMemberActiveIn(team, id, active),
     removeMember: (id) => removeMemberFrom(team, id),
     saveSettings: (settings) => saveSettingsIn(team, settings),

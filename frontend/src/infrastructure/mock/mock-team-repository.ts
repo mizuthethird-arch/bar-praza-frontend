@@ -1,5 +1,13 @@
 import type { TeamRepository } from '../../application/ports'
-import { cancelInvitation, inviteStaff, removeMember, setMemberActive, type StaffMember, type TeamState } from '../../domain/team/team'
+import {
+  cancelInvitation,
+  inviteStaff,
+  removeMember,
+  resendInvitation,
+  setMemberActive,
+  type StaffMember,
+  type TeamState,
+} from '../../domain/team/team'
 import { memoryStore } from './memory-store'
 
 // Names and contact data are placeholders, not the bar's real ones.
@@ -33,6 +41,8 @@ export function createMockTeamRepository({ now = () => new Date() }: { now?: () 
     inviteMember: (invite) =>
       store.change((state) => ({ ...state, invitations: inviteStaff(state.invitations, invite, dayOf(now())) })),
     cancelInvitation: (id) => store.change((state) => ({ ...state, invitations: cancelInvitation(state.invitations, id) })),
+    resendInvitation: (id) =>
+      store.change((state) => ({ ...state, invitations: resendInvitation(state.invitations, id, dayOf(now())) })),
     setMemberActive: (id, active) => changeMembers((members) => setMemberActive(members, id, active)),
     removeMember: (id) => changeMembers((members) => removeMember(members, id)),
     saveSettings: (settings) => store.change((state) => ({ ...state, settings })),

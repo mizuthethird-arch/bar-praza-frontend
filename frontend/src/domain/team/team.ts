@@ -82,6 +82,16 @@ export function cancelInvitation(invitations: Invitation[], id: string): Invitat
   return invitations.filter((invitation) => invitation.id !== id)
 }
 
+// Sends the same invitation again. It gets seven new days from `today`, so an expired one can be used once more.
+// It is refused when that email already has another invitation still in its days, so one email never has two.
+export function resendInvitation(invitations: Invitation[], id: string, today: string): Invitation[] {
+  const invitation = invitations.find((item) => item.id === id)
+  if (!invitation) throw new InvitationError('Esa invitación ya no existe')
+  const hasOtherLive = invitations.some((item) => item.id !== id && item.email === invitation.email && item.expiresOn >= today)
+  if (hasOtherLive) throw new InvitationError('Ya hay una invitación para ese email')
+  return invitations.map((item) => (item.id === id ? { ...item, expiresOn: addDays(today, INVITATION_DAYS) } : item))
+}
+
 export function setMemberActive(members: StaffMember[], id: string, active: boolean): StaffMember[] {
   const next = members.map((member) => (member.id === id ? { ...member, active } : member))
   assertKeepsAnOwner(members, next)

@@ -163,6 +163,7 @@ The board duplicates the order log (Pedidos): see open question 1 below.
 |---|---|---|---|---|
 | `inviteMember` | `POST /team/invitations` | `{ email, role: 'kitchen' \| 'bar' }` | `TeamState` (with `invitations`) | Email must be a valid address (stored lowercase). Role is kitchen or bar only: an owner cannot be invited (D-1, SCH-3). An email with a live invitation (not yet expired) cannot get a second one. The invitation expires 7 days after it is sent (D-2) and works once (D-3). The server assigns the id. |
 | `cancelInvitation` | `DELETE /team/invitations/{id}` | invitation id | `TeamState` | Only a pending invitation can be cancelled; its link stops working at once. Unknown id is an error. |
+| `resendInvitation` | `POST /team/invitations/{id}/resend` | invitation id | `TeamState` | Sends the same invitation again: the expiry becomes 7 days from the day it is resent (D-2). Refused when the same email has another invitation still in its days. Unknown id is an error. |
 | `setMemberActive` | `PATCH /team/members/{id}` | `{ active }` | `TeamState` | At least one active owner must remain. |
 | `removeMember` | `DELETE /team/members/{id}` | member id | `TeamState` | At least one active owner must remain. |
 | `saveSettings` | `PUT /team/settings` | `BarSettings` | `TeamState` | `barName` required and trimmed. |

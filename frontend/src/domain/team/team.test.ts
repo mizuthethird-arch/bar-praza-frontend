@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cancelInvitation, InvitationError, inviteStaff, removeMember, setMemberActive, type Invitation, type StaffMember } from './team'
+import { cancelInvitation, InvitationError, inviteStaff, removeMember, resendInvitation, setMemberActive, type Invitation, type StaffMember } from './team'
 
 const members: StaffMember[] = [
   { id: 'm1', name: 'Titular', role: 'owner', active: true, pinSet: true, lastAccess: null, device: null },
@@ -60,6 +60,35 @@ describe('cancelling an invitation', () => {
 
   it('refuses an invitation that is not there any more', () => {
     expect(() => cancelInvitation([], 'i9')).toThrow(InvitationError)
+  })
+})
+
+describe('resending an invitation', () => {
+  it('gives the same invitation seven new days from the day it is resent', () => {
+    const invitations: Invitation[] = [{ id: 'i1', email: 'a@b.es', role: 'kitchen', expiresOn: '2026-11-03' }]
+
+    expect(resendInvitation(invitations, 'i1', '2026-11-05')).toEqual([
+      { id: 'i1', email: 'a@b.es', role: 'kitchen', expiresOn: '2026-11-12' },
+    ])
+  })
+
+  it('brings back an expired invitation', () => {
+    const invitations: Invitation[] = [{ id: 'i1', email: 'a@b.es', role: 'bar', expiresOn: '2026-10-20' }]
+
+    expect(resendInvitation(invitations, 'i1', '2026-11-01')[0].expiresOn).toBe('2026-11-08')
+  })
+
+  it('refuses when the same email already has another invitation still in its days', () => {
+    const invitations: Invitation[] = [
+      { id: 'i1', email: 'a@b.es', role: 'kitchen', expiresOn: '2026-10-20' },
+      { id: 'i2', email: 'a@b.es', role: 'bar', expiresOn: '2026-11-08' },
+    ]
+
+    expect(() => resendInvitation(invitations, 'i1', '2026-11-01')).toThrow('Ya hay una invitación para ese email')
+  })
+
+  it('refuses an invitation that is not there any more', () => {
+    expect(() => resendInvitation([], 'i9', '2026-11-01')).toThrow(InvitationError)
   })
 })
 

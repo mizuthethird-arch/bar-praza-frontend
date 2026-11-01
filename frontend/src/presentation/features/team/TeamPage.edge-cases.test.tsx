@@ -66,4 +66,18 @@ describe('TeamPage edge cases', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar')
   })
+
+  it('tells the user when an invitation cannot be resent', async () => {
+    const user = userEvent.setup()
+    const team = {
+      members: [],
+      invitations: [{ id: 'i1', email: 'x@bar.es', role: 'bar' as const, expiresOn: '2026-11-08' }],
+      settings: { barName: 'Bar Praza', phone: '', address: '', notifyNewOrders: true, notifyDelays: true },
+    }
+    renderApp('/ajustes', { getTeam: () => Promise.resolve(team), resendInvitation: () => Promise.reject(new Error('down')) })
+
+    await user.click(await screen.findByRole('button', { name: 'Reenviar invitación a x@bar.es' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo reenviar la invitación')
+  })
 })
