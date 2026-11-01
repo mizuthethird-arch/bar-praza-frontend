@@ -1,10 +1,19 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { TeamRepository } from './ports'
-import { inviteMemberTo, removeMemberFrom, saveSettingsIn, sendPasswordResetIn, setMemberActiveIn, setMemberPinIn } from './manage-team'
+import {
+  disconnectDeviceIn,
+  inviteMemberTo,
+  listDevicesOf,
+  removeMemberFrom,
+  saveSettingsIn,
+  sendPasswordResetIn,
+  setMemberActiveIn,
+  setMemberPinIn,
+} from './manage-team'
 
 const repo = (): TeamRepository => {
   const done = vi.fn().mockResolvedValue({ members: [], invitations: [], settings: {} })
-  return { get: vi.fn(), inviteMember: done, setMemberActive: done, setMemberPin: done, removeMember: done, sendPasswordReset: done, saveSettings: done } as unknown as TeamRepository
+  return { get: vi.fn(), inviteMember: done, setMemberActive: done, setMemberPin: done, removeMember: done, sendPasswordReset: done, listDevices: done, disconnectDevice: done, saveSettings: done } as unknown as TeamRepository
 }
 
 describe('team use cases', () => {
@@ -14,6 +23,16 @@ describe('team use cases', () => {
     await inviteMemberTo(team, { email: 'a@b.es', role: 'kitchen' })
 
     expect(team.inviteMember).toHaveBeenCalledWith({ email: 'a@b.es', role: 'kitchen' })
+  })
+
+  it('lists and disconnects devices through the repository', async () => {
+    const team = repo()
+
+    await listDevicesOf(team, 'm2')
+    await disconnectDeviceIn(team, 'm2', 'd1')
+
+    expect(team.listDevices).toHaveBeenCalledWith('m2')
+    expect(team.disconnectDevice).toHaveBeenCalledWith('m2', 'd1')
   })
 
   it('sends a password recovery link through the repository', async () => {

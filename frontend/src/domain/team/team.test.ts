@@ -4,12 +4,15 @@ import {
   InvitationError,
   inviteStaff,
   MemberError,
+  devicesOf,
+  disconnectDevice,
   passwordResetFor,
   removeMember,
   resendInvitation,
   setMemberActive,
   setMemberPin,
   type Invitation,
+  type StaffDevice,
   type StaffMember,
   updateMember,
 } from './team'
@@ -98,6 +101,15 @@ describe('resending an invitation', () => {
     ]
 
     expect(() => resendInvitation(invitations, 'i1', '2026-11-01')).toThrow('Ya hay una invitación para ese email')
+  })
+
+  it('leaves the other invitations as they are', () => {
+    const invitations: Invitation[] = [
+      { id: 'i1', email: 'a@b.es', role: 'kitchen', expiresOn: '2026-11-03' },
+      { id: 'i2', email: 'c@d.es', role: 'bar', expiresOn: '2026-11-04' },
+    ]
+
+    expect(resendInvitation(invitations, 'i1', '2026-11-05')[1]).toEqual(invitations[1])
   })
 
   it('refuses an invitation that is not there any more', () => {
@@ -192,6 +204,35 @@ describe('sending a password recovery link', () => {
 
   it('refuses a member that is not there any more', () => {
     expect(() => passwordResetFor(members, 'm9')).toThrow(MemberError)
+  })
+})
+
+describe('remembered devices', () => {
+  const devices: StaffDevice[] = [
+    { id: 'd1', memberId: 'm2', name: 'Tablet cocina', rememberedOn: '2026-10-28', lastUsed: '2026-11-01 19:02', status: 'active', endedOn: null },
+    { id: 'd2', memberId: 'm2', name: 'Móvil antiguo', rememberedOn: '2026-09-02', lastUsed: null, status: 'expired', endedOn: '2026-10-02' },
+    { id: 'd3', memberId: 'm2', name: 'Móvil de Uxía', rememberedOn: '2026-10-01', lastUsed: null, status: 'active', endedOn: null },
+    { id: 'd4', memberId: 'm1', name: 'TABLET BARRA', rememberedOn: '2026-10-20', lastUsed: null, status: 'active', endedOn: null },
+  ]
+
+  it('lists one member devices, with the active ones first', () => {
+    expect(devicesOf(devices, 'm2').map((device) => device.id)).toEqual(['d1', 'd3', 'd2'])
+  })
+
+  it('disconnects an active device, and records the day', () => {
+    const result = disconnectDevice(devices, 'm2', 'd1', '2026-11-02')
+
+    expect(result.find((device) => device.id === 'd1')).toEqual({ ...devices[0], status: 'disconnected', endedOn: '2026-11-02' })
+    expect(result.find((device) => device.id === 'd4')).toEqual(devices[3])
+  })
+
+  it('refuses a device that is not connected any more', () => {
+    expect(() => disconnectDevice(devices, 'm2', 'd2', '2026-11-02')).toThrow('Ese dispositivo ya no está conectado')
+  })
+
+  it('refuses a device that belongs to another member, or does not exist', () => {
+    expect(() => disconnectDevice(devices, 'm2', 'd4', '2026-11-02')).toThrow('Ese dispositivo ya no existe')
+    expect(() => disconnectDevice(devices, 'm2', 'd9', '2026-11-02')).toThrow(MemberError)
   })
 })
 

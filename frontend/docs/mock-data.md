@@ -141,7 +141,7 @@ From `mock-team-repository.ts`.
 - Bar settings: name "Bar Praza", phone and address as placeholders, both notifications on.
 
 Try:
-- Invite kitchen or bar staff by email. The invitation lasts 7 days and works once; the owner cannot be invited. Pending invitations are listed below the members, with Reenviar (restarts the 7 days) and Anular (cancels it). Edit a member's name and role (the owner's role stays fixed). Set or change a member's PIN (4 digits, typed twice); the mock keeps only whether one is set. Send a member a link to choose a new password, from the edit pop-up; the mock only checks the member can receive it (not deactivated), and the notice names their email. Deactivate a member and reactivate them later. Delete a member from the edit pop-up, after a confirmation.
+- Invite kitchen or bar staff by email. The invitation lasts 7 days and works once; the owner cannot be invited. Pending invitations are listed below the members, with Reenviar (restarts the 7 days) and Anular (cancels it). Edit a member's name and role (the owner's role stays fixed). Set or change a member's PIN (4 digits, typed twice); the mock keeps only whether one is set. See a member's remembered devices from "Dispositivos" on their row: the active ones can be disconnected, and the rest are the history. Send a member a link to choose a new password, from the edit pop-up; the mock only checks the member can receive it (not deactivated), and the notice names their email. Deactivate a member and reactivate them later. Delete a member from the edit pop-up, after a confirmation.
 - Deactivating or removing the only active owner is refused.
 - Saving the settings needs a bar name.
 

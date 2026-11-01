@@ -1,6 +1,8 @@
 import type { TeamRepository } from '../../application/ports'
 import {
   cancelInvitation,
+  devicesOf,
+  disconnectDevice,
   inviteStaff,
   resendInvitation,
   setMemberActive,
@@ -8,6 +10,7 @@ import {
   passwordResetFor,
   setMemberPin,
   updateMember,
+  type StaffDevice,
   type StaffMember,
   type TeamState,
 } from '../../domain/team/team'
@@ -30,12 +33,20 @@ const initial: TeamState = {
   },
 }
 
+const initialDevices: StaffDevice[] = [
+  { id: 'd1', memberId: 'm1', name: 'TABLET BARRA', rememberedOn: '2026-10-20', lastUsed: '2026-11-01 21:10', status: 'active', endedOn: null },
+  { id: 'd2', memberId: 'm1', name: 'Móvil del titular', rememberedOn: '2026-09-02', lastUsed: '2026-10-02 12:00', status: 'expired', endedOn: '2026-10-02' },
+  { id: 'd3', memberId: 'm2', name: 'Tablet cocina', rememberedOn: '2026-10-28', lastUsed: '2026-11-01 19:02', status: 'active', endedOn: null },
+  { id: 'd4', memberId: 'm3', name: 'TABLET BARRA', rememberedOn: '2026-10-01', lastUsed: '2026-10-30 22:40', status: 'disconnected', endedOn: '2026-10-31' },
+]
+
 // The day as YYYY-MM-DD in the local time zone, which is how the person reads the calendar.
 const dayOf = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
 export function createMockTeamRepository({ now = () => new Date() }: { now?: () => Date } = {}): TeamRepository {
   const store = memoryStore(initial)
+  const devices = memoryStore(initialDevices)
   const changeMembers = (apply: (members: StaffMember[]) => StaffMember[]) =>
     store.change((state) => ({ ...state, members: apply(state.members) }))
 
@@ -54,5 +65,10 @@ export function createMockTeamRepository({ now = () => new Date() }: { now?: () 
     },
     updateMember: (id, changes) => changeMembers((members) => updateMember(members, id, changes)),
     saveSettings: (settings) => store.change((state) => ({ ...state, settings })),
+    listDevices: async (memberId) => devicesOf(await devices.read(), memberId),
+    disconnectDevice: async (memberId, deviceId) => {
+      const next = await devices.change((all) => disconnectDevice(all, memberId, deviceId, dayOf(now())))
+      return devicesOf(next, memberId)
+    },
   }
 }

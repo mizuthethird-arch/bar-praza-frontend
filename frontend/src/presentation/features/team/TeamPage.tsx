@@ -14,9 +14,11 @@ import { useAsync } from '../../hooks/use-async'
 import { AsyncView } from '../../ui/async-view'
 import { bodyCell, card, fieldLabel, headCell, inputClass, primaryButton, sectionTitle, textButton } from '../../ui/classes'
 import { Page, PageHeader, Reveal } from '../../ui/Page'
+import { formatAccess, formatDay } from '../../format/day'
 import { useRowMotion } from '../../ui/motion'
 import { Toast } from '../../ui/Toast'
 import { MemberEditDialog } from './MemberEditDialog'
+import { DevicesDialog } from './DevicesDialog'
 import { PinDialog } from './PinDialog'
 
 const roleLabel: Record<Role, string> = { owner: 'Titular', kitchen: 'Cocina', bar: 'Barra' }
@@ -51,16 +53,7 @@ function StatusBadge({ status }: { status: keyof typeof statusLabel }) {
   )
 }
 
-// A stored YYYY-MM-DD HH:mm as it is read on screen: 01/11 21:10.
-const formatAccess = (when: string) => {
-  const [day, time] = when.split(' ')
-  return `${day.split('-').slice(1).reverse().join('/')} ${time}`
-}
-
 const invitableLabel: Record<InvitableRole, string> = { kitchen: 'Cocina', bar: 'Barra' }
-
-// A YYYY-MM-DD day as it is written on screen: 08/11/2026.
-const formatDay = (day: string) => day.split('-').reverse().join('/')
 
 function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (state: TeamState) => void; onNotice: (text: string) => void }) {
   const services = useServices()
@@ -75,6 +68,9 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
   const editing = team.members.find((member) => member.id === editingId) ?? null
   const [pinId, setPinId] = useState<string | null>(null)
   const pinMember = team.members.find((member) => member.id === pinId) ?? null
+  // The member whose remembered devices are open.
+  const [devicesId, setDevicesId] = useState<string | null>(null)
+  const devicesMember = team.members.find((member) => member.id === devicesId) ?? null
 
   async function run(action: Promise<TeamState>, failure: string) {
     try {
@@ -135,7 +131,7 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
   const ownerMessage = 'Tiene que quedar al menos un titular activo'
 
   return (
-    <motion.section layout={resize} className={`${card} min-w-0`}>
+    <motion.section layout={resize} className={`${card} h-full min-w-0`}>
       <h2 className={sectionTitle}>Personal</h2>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse">
@@ -161,40 +157,46 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
                   <StatusBadge status={member.active ? 'active' : 'deactivated'} />
                 </td>
                 <td className={bodyCell}>{member.pinSet ? 'Configurado' : 'Sin PIN'}</td>
-                <td className={bodyCell}>{member.lastAccess ? formatAccess(member.lastAccess) : '—'}</td>
-                <td className={bodyCell}>{member.device ?? '—'}</td>
-                <td className={`${bodyCell} whitespace-nowrap text-right`}>
-                  <button type="button" aria-label={`Editar ${member.name}`} onClick={() => setEditingId(member.id)} className={`${textButton} mr-4`}>
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`${member.pinSet ? 'Cambiar' : 'Poner'} PIN de ${member.name}`}
-                    onClick={() => setPinId(member.id)}
-                    className={`${textButton} mr-4`}
-                  >
-                    {member.pinSet ? 'Cambiar PIN' : 'Poner PIN'}
-                  </button>
-                  {/* Deactivating keeps the history; deleting is only offered from the edit pop-up. */}
-                  {member.active ? (
+                <td className={`${bodyCell} whitespace-nowrap`}>{member.lastAccess ? formatAccess(member.lastAccess) : '—'}</td>
+                <td className={`${bodyCell} whitespace-nowrap`}>{member.device ?? '—'}</td>
+                <td className={bodyCell}>
+                  {/* Each action has its own column, so the same action lines up in every row. */}
+                  <div className="grid grid-cols-[repeat(4,7.5rem)] items-center whitespace-nowrap">
+                    <button type="button" aria-label={`Editar ${member.name}`} onClick={() => setEditingId(member.id)} className={textButton}>
+                      Editar
+                    </button>
                     <button
                       type="button"
-                      aria-label={`Desactivar ${member.name}`}
-                      onClick={() => void run(services.setMemberActive(member.id, false), ownerMessage)}
+                      aria-label={`${member.pinSet ? 'Cambiar' : 'Poner'} PIN de ${member.name}`}
+                      onClick={() => setPinId(member.id)}
                       className={textButton}
                     >
-                      Desactivar
+                      {member.pinSet ? 'Cambiar PIN' : 'Poner PIN'}
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      aria-label={`Reactivar ${member.name}`}
-                      onClick={() => void run(services.setMemberActive(member.id, true), ownerMessage)}
-                      className={textButton}
-                    >
-                      Reactivar
+                    <button type="button" aria-label={`Dispositivos de ${member.name}`} onClick={() => setDevicesId(member.id)} className={textButton}>
+                      Dispositivos
                     </button>
-                  )}
+                    {/* Deactivating keeps the history; deleting is only offered from the edit pop-up. */}
+                    {member.active ? (
+                      <button
+                        type="button"
+                        aria-label={`Desactivar ${member.name}`}
+                        onClick={() => void run(services.setMemberActive(member.id, false), ownerMessage)}
+                        className={textButton}
+                      >
+                        Desactivar
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        aria-label={`Reactivar ${member.name}`}
+                        onClick={() => void run(services.setMemberActive(member.id, true), ownerMessage)}
+                        className={textButton}
+                      >
+                        Reactivar
+                      </button>
+                    )}
+                  </div>
                 </td>
               </motion.tr>
             ))}
@@ -278,6 +280,7 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
             onClose={() => setPinId(null)}
           />
         )}
+        {devicesMember && <DevicesDialog key={devicesMember.id} member={devicesMember} onClose={() => setDevicesId(null)} />}
       </AnimatePresence>
     </motion.section>
   )
@@ -303,7 +306,7 @@ function SettingsCard({ settings, onSaved }: { settings: BarSettings; onSaved: (
   }
 
   return (
-    <section className={`${card} min-w-0 space-y-4`}>
+    <section className={`${card} h-full min-w-0 space-y-4`}>
       <h2 className={sectionTitle}>Ajustes del bar</h2>
       {(['barName', 'phone', 'address'] as const).map((field) => (
         <label key={field} className={fieldLabel}>
@@ -344,11 +347,11 @@ export function TeamPage() {
           <Page>
             <PageHeader eyebrow="Datos de demostración" title="Personal y ajustes" />
             <Toast message={notice} onDone={() => setNotice(null)} />
-            <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
-              <Reveal className="min-w-0">
+            <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+              <Reveal className="h-full min-w-0">
                 <StaffCard team={team} onChange={setChanged} onNotice={setNotice} />
               </Reveal>
-              <Reveal className="min-w-0">
+              <Reveal className="h-full min-w-0">
                 <SettingsCard settings={loaded.settings} onSaved={setChanged} />
               </Reveal>
             </div>

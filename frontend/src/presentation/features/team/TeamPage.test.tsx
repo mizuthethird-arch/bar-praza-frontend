@@ -232,6 +232,39 @@ describe('TeamPage', () => {
     expect(within(dialog).getByText('Reactiva a la persona para enviarle el enlace.')).toBeInTheDocument()
   })
 
+  it('disconnects a remembered device, and it moves to the history', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Dispositivos de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Dispositivos · [Uxía]' })
+    expect(within(dialog).getByText('Tablet cocina')).toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Desconectar Tablet cocina de [Uxía]' }))
+
+    expect(await within(dialog).findByRole('status')).toHaveTextContent('Desconectado: Tablet cocina')
+    expect(within(dialog).getByText('Ningún dispositivo conectado.', { exact: false })).toBeInTheDocument()
+    expect(within(dialog).getByText(/Desconectado el /)).toBeInTheDocument()
+  })
+
+  it('offers to change the PIN of a member who already has one', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Cambiar PIN de [Titular]' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Cambiar PIN · [Titular]' })).toBeInTheDocument()
+  })
+
+  it('shows the history of a member with no device connected', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Dispositivos de [Xosé]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Dispositivos · [Xosé]' })
+
+    expect(within(dialog).getByText('Ningún dispositivo conectado.')).toBeInTheDocument()
+    expect(within(dialog).getByText('TABLET BARRA')).toBeInTheDocument()
+    expect(within(dialog).getByText(/Desconectado el 31\/10\/2026/)).toBeInTheDocument()
+  })
+
   it('never offers to delete a staff member', async () => {
     renderApp('/ajustes')
     await screen.findByText('[Titular]')
