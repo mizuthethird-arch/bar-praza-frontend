@@ -1,12 +1,13 @@
-import type { BarSettings, Role } from '../domain/team/team'
+import type { BarSettings, InvitableRole } from '../domain/team/team'
 import type { TeamRepository } from './ports'
 
 export const getTeam = (team: TeamRepository) => team.get()
 
-export async function addMemberTo(team: TeamRepository, { name, role }: { name: string; role: Role }) {
-  if (name.trim() === '') throw new Error('A member needs a name')
-  return team.addMember({ name: name.trim(), role })
-}
+// Sends an invitation by email. The team's rules (role, email, one live invitation per email) are checked there.
+export const inviteMemberTo = (team: TeamRepository, invite: { email: string; role: InvitableRole }) =>
+  team.inviteMember(invite)
+
+export const cancelInvitationIn = (team: TeamRepository, id: string) => team.cancelInvitation(id)
 
 export const setMemberActiveIn = (team: TeamRepository, id: string, active: boolean) =>
   team.setMemberActive(id, active)

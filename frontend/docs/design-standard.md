@@ -179,3 +179,7 @@ Don't:
 - Confirm the primary button colour on the kitchen screen (provisional).
 - Confirm the pop-up border: grey (applied) or white.
 - Confirm the grab handle and drag-to-close feel on a real phone (not checked on a device).
+
+## Scrollbars
+- Every scroll area (tables, pop-ups, the sidebar, the page, the delivered list) uses one thin scrollbar set once in `src/index.css`: neutral-700 thumb with a neutral-600 hover, on a neutral-950 track with a neutral-800 edge. No screen restyles its own scrollbar. (2026-11-01)
+

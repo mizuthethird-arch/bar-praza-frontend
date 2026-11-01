@@ -5,7 +5,7 @@ import type { Product } from '../domain/menu/product'
 import type { OrderEntry } from '../domain/orders/order-log'
 import type { Report } from '../domain/reports/report'
 import type { StockMovement, StockState } from '../domain/stock/stock'
-import type { BarSettings, Role, TeamState } from '../domain/team/team'
+import type { BarSettings, InvitableRole, TeamState } from '../domain/team/team'
 import type { Credentials } from '../domain/auth/credentials'
 import type { PinResult } from '../domain/auth/pin'
 import type { RememberedDevice } from '../domain/auth/remembered-device'
@@ -45,7 +45,8 @@ export interface AppServices {
   listCustomers(): Promise<Customer[]>
   getReport(): Promise<Report>
   getTeam(): Promise<TeamState>
-  addMember(member: { name: string; role: Role }): Promise<TeamState>
+  inviteMember(invite: { email: string; role: InvitableRole }): Promise<TeamState>
+  cancelInvitation(id: string): Promise<TeamState>
   setMemberActive(id: string, active: boolean): Promise<TeamState>
   removeMember(id: string): Promise<TeamState>
   saveSettings(settings: BarSettings): Promise<TeamState>
