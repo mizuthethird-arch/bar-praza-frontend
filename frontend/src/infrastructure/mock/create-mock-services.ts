@@ -17,7 +17,6 @@ import { listLiveEvents, pollLiveEvents } from '../../application/live-console'
 import { getStock, recordMovementIn } from '../../application/stock'
 import type { AppServices } from '../../application/services'
 import type { AuthGateway, PinGateway } from '../../application/ports'
-import { createMockAuthGateway } from './mock-auth-gateway'
 import { createMockCatalogRepository } from './mock-catalog-repository'
 import { createMockCustomersRepository } from './mock-customers-repository'
 import { createMockKitchenRepository } from './mock-kitchen-repository'
@@ -25,30 +24,21 @@ import { createMockLiveEventsRepository } from './mock-live-events-repository'
 import { createMockMenuRepository } from './mock-menu-repository'
 import { createMockOrderLogRepository } from './mock-order-log-repository'
 import { createMockOrdersRepository } from './mock-orders-repository'
-import { createMockPinGateway } from './mock-pin-gateway'
 import { createMockReportsRepository } from './mock-reports-repository'
-import { createMockSessionStore } from './mock-session-store'
 import { createMockScheduleRepository } from './mock-schedule-repository'
 import { createMockStockRepository } from './mock-stock-repository'
 import { createMockTeamRepository } from './mock-team-repository'
 
 type Options = {
-  loginDelayMs?: number
-  signedIn?: boolean
-  // Where the mock session is kept; the app passes sessionStorage so a reload keeps you signed in.
-  storage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
-  // The real login (HTTP). When given, it replaces the mock login and the PIN unlock is left out,
-  // because the backend does not have it yet. The other screens stay on the mock until they are built.
-  auth?: AuthGateway
-  // The real PIN unlock (HTTP). Without it and with a real login, the PIN is left out.
+  // The login: the demo logins (createDemoServices) or the real one (HTTP).
+  auth: AuthGateway
+  // The PIN unlock. Left out when there is no PIN for this build.
   pin?: PinGateway
 }
 
-// Composition root for the mock backend. The app passes the real login when the API address is set.
-export function createMockServices({ loginDelayMs, signedIn = false, storage, auth: realAuth, pin: realPin }: Options = {}): AppServices {
-  const session = createMockSessionStore({ active: signedIn, storage })
-  const auth = realAuth ?? createMockAuthGateway({ delayMs: loginDelayMs, session })
-  const pin = realPin ?? (realAuth ? undefined : createMockPinGateway({ session }))
+// The read side is still mock data, with no accounts and no login. The login and the PIN come in as
+// arguments, so a production build never includes the demo accounts (ISS-13).
+export function createMockServices({ auth, pin }: Options): AppServices {
   const orders = createMockOrdersRepository()
   const menu = createMockMenuRepository()
   const schedule = createMockScheduleRepository()

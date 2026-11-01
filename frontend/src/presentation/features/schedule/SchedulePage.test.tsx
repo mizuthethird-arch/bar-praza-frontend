@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { createMockServices } from '../../../infrastructure/mock/create-mock-services'
+import { createDemoServices } from '../../../infrastructure/mock/demo-services'
 import { renderApp } from '../../../test/render-app'
 
 describe('SchedulePage', () => {
@@ -27,7 +27,7 @@ describe('SchedulePage', () => {
   })
 
   it('shows the pause state when ordering is not being accepted', async () => {
-    const overview = await createMockServices({ loginDelayMs: 0 }).getScheduleOverview()
+    const overview = await createDemoServices({ loginDelayMs: 0 }).getScheduleOverview()
     renderApp('/horario', {
       getScheduleOverview: async () => ({
         ...overview,

@@ -2,12 +2,12 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
-import { createMockServices } from '../../infrastructure/mock/create-mock-services'
+import { createDemoServices } from '../../infrastructure/mock/demo-services'
 import { ServicesProvider } from '../app/ServicesProvider'
 import { AppShell } from './AppShell'
 
 function renderShell() {
-  const services = createMockServices({ loginDelayMs: 0, signedIn: true })
+  const services = createDemoServices({ loginDelayMs: 0, signedIn: true })
   return render(
     <MemoryRouter initialEntries={['/']}>
       <ServicesProvider services={services}>

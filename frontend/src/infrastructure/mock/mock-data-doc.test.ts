@@ -15,11 +15,9 @@ describe('docs/mock-data.md', () => {
     expect(doc).toBeTypeOf('string')
   })
 
-  it('lists every demo login exactly as the mock checks it', () => {
-    for (const { email, password } of mockAccounts) {
-      expect(doc, email).toContain(`\`${email}\``)
-      expect(doc, password).toContain(`\`${password}\``)
-    }
+  it('lists every demo login by email, and points to mock-accounts.ts for the passwords', () => {
+    for (const { email } of mockAccounts) expect(doc, email).toContain(`\`${email}\``)
+    expect(doc).toContain('in `mock-accounts.ts`')
   })
 
   it('mentions every mock source file', () => {

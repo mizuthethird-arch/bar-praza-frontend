@@ -44,6 +44,13 @@ Every call sends `credentials: 'include'`, because the session is an HttpOnly co
 cannot read. The backend's own description, with the error codes and the lock rules, is in its
 `docs/api-for-frontend.md`. The mock stays for everything else until each read and command is built.
 
+Which services the app uses is set at build time (ISS-13):
+
+- `VITE_API_URL` set: the real login and PIN unlock talk to the backend.
+- `VITE_DEMO_MODE=true`: the demo build, with the demo logins and the demo PIN. Only this build contains them.
+- Development with neither set: the demo logins, so local work needs no setup.
+- A production build with neither: nothing starts, and the page says what is missing. It never falls back to the demo logins.
+
 To run the login against the backend, start the dev server on `localhost` (the backend allows only
 `http://localhost:5173`) with the API address set:
 
