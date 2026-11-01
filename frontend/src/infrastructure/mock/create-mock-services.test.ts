@@ -2,9 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { isIsoDate } from '../../domain/schedule/schedule-changes'
 import { mockAccounts } from './mock-accounts'
 import { createMockServices } from './create-mock-services'
+import { createDemoServices } from './demo-services'
 
 describe('createMockServices', () => {
-  const services = createMockServices({ loginDelayMs: 0, signedIn: true })
+  const services = createDemoServices({ loginDelayMs: 0, signedIn: true })
 
   it('seeds a dashboard whose figures match the demo screen', async () => {
     const { summary } = await services.getDashboard()
@@ -28,7 +29,7 @@ describe('createMockServices', () => {
 
 describe('writes from two devices at once', () => {
   it('keeps both changes instead of the last one overwriting the first', async () => {
-    const services = createMockServices({ loginDelayMs: 0, signedIn: true })
+    const services = createDemoServices({ loginDelayMs: 0, signedIn: true })
 
     await Promise.all([services.cancelOrder('#44'), services.cancelOrder('#42')])
     const orders = await services.listOrderLog()
@@ -65,7 +66,7 @@ describe('writes from two devices at once', () => {
   })
 
   it('still enforces the rules on the server side', async () => {
-    const services = createMockServices({ loginDelayMs: 0, signedIn: true })
+    const services = createDemoServices({ loginDelayMs: 0, signedIn: true })
 
     await expect(services.cancelOrder('#40')).rejects.toThrow()
     await expect(services.removeMember('m1')).rejects.toThrow()
@@ -75,7 +76,7 @@ describe('writes from two devices at once', () => {
 
 describe('seed data', () => {
   it('prices every order line from the catalog and adds up each order', async () => {
-    const services = createMockServices({ loginDelayMs: 0 })
+    const services = createDemoServices({ loginDelayMs: 0 })
     const catalog = await services.getCatalog()
 
     for (const order of await services.listOrderLog()) {
@@ -89,7 +90,7 @@ describe('seed data', () => {
   })
 
   it('seeds closures with real dates', async () => {
-    const { closures } = await createMockServices({ loginDelayMs: 0 }).getScheduleOverview()
+    const { closures } = await createDemoServices({ loginDelayMs: 0 }).getScheduleOverview()
 
     for (const closure of closures) expect(isIsoDate(closure.date), closure.date).toBe(true)
   })
@@ -102,7 +103,7 @@ describe('real login in the services', () => {
       logout: vi.fn().mockResolvedValue(undefined),
       isSignedIn: vi.fn().mockResolvedValue(true),
     }
-    const services = createMockServices({ loginDelayMs: 0, auth })
+    const services = createMockServices({ auth })
 
     await services.login({ email: 'staff@example.com', password: 'secret-pass' })
 
@@ -116,9 +117,9 @@ describe('session across reloads', () => {
   afterEach(() => sessionStorage.clear())
 
   it('keeps the login when the services are built again on the same storage', async () => {
-    const first = createMockServices({ loginDelayMs: 0, storage: sessionStorage })
+    const first = createDemoServices({ loginDelayMs: 0, storage: sessionStorage })
     await first.login({ email: mockAccounts[0].email, password: mockAccounts[0].password })
 
-    await expect(createMockServices({ loginDelayMs: 0, storage: sessionStorage }).hasSession()).resolves.toBe(true)
+    await expect(createDemoServices({ loginDelayMs: 0, storage: sessionStorage }).hasSession()).resolves.toBe(true)
   })
 })

@@ -4,7 +4,7 @@ The dashboard runs against an in-memory mock backend until the real one exists. 
 what the mock holds and what you can try on each screen. All the figures, names and prices are
 invented for the demo; values in `[brackets]` are placeholders on purpose.
 
-The code lives in `src/infrastructure/mock/`; `create-mock-services.ts` wires it all together.
+The code lives in `src/infrastructure/mock/`; `create-mock-services.ts` wires the read mocks; `demo-services.ts` adds the demo logins for a demo build.
 The test `mock-data-doc.test.ts` fails if a demo login or a mock file is missing from this page.
 
 ## How the mock behaves
@@ -25,9 +25,9 @@ and after logging in you land on the page you asked for.
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Owner | `titular@barpraza.test` | `Praza-Titular-1` |
-| Kitchen | `cocina@barpraza.test` | `Praza-Cocina-1` |
-| Bar | `barra@barpraza.test` | `Praza-Barra-1` |
+| Owner | `titular@barpraza.test` | in `mock-accounts.ts` |
+| Kitchen | `cocina@barpraza.test` | in `mock-accounts.ts` |
+| Bar | `barra@barpraza.test` | in `mock-accounts.ts` |
 
 - Email ignores case and spaces around it. The password is exact.
 - Any other email, or a wrong password, shows "Email o contraseña incorrectos" (the same message
@@ -195,7 +195,8 @@ From `mock-live-events-repository.ts`: a scripted evening of 8 events.
 
 | File | Holds |
 | --- | --- |
-| `create-mock-services.ts` | Builds every mock and wires them into the use cases (the composition root used by `main.tsx`). |
+| `create-mock-services.ts` | Wires the read mocks and the login and PIN it is given into the use cases. Takes no demo accounts. |
+| `demo-services.ts` | The demo build: the demo logins, the demo PIN and a mock session. Only a demo or development build imports it (`main.tsx`), so a production build never includes the demo accounts. |
 | `memory-store.ts` | The in-memory "server" copy. It applies each command to the latest state. |
 | `mock-accounts.ts` | The demo logins above. |
 | `mock-auth-gateway.ts` | Checks the logins, with the 500 ms delay. |

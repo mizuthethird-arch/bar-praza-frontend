@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { createMockServices } from '../../../infrastructure/mock/create-mock-services'
+import { createDemoServices } from '../../../infrastructure/mock/demo-services'
 import { renderApp } from '../../../test/render-app'
 
 const offline = () => Promise.reject(new Error('offline'))
@@ -18,7 +18,7 @@ describe('SchedulePage edge cases', () => {
   })
 
   it('tells the user when resuming fails', async () => {
-    const services = createMockServices({ loginDelayMs: 0 })
+    const services = createDemoServices({ loginDelayMs: 0 })
     const paused = await services.pauseOrders(15)
     const user = userEvent.setup()
     renderApp('/horario', { getScheduleOverview: async () => paused, resumeOrders: offline })
