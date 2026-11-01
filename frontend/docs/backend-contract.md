@@ -44,6 +44,13 @@ Every call sends `credentials: 'include'`, because the session is an HttpOnly co
 cannot read. The backend's own description, with the error codes and the lock rules, is in its
 `docs/api-for-frontend.md`. The mock stays for everything else until each read and command is built.
 
+Which services the app uses is set at build time (ISS-13):
+
+- `VITE_API_URL` set: the real login and PIN unlock talk to the backend.
+- `VITE_DEMO_MODE=true`: the demo build, with the demo logins and the demo PIN. Only this build contains them.
+- Development with neither set: the demo logins, so local work needs no setup.
+- A production build with neither: nothing starts, and the page says what is missing. It never falls back to the demo logins.
+
 To run the login against the backend, start the dev server on `localhost` (the backend allows only
 `http://localhost:5173`) with the API address set:
 
@@ -100,9 +107,9 @@ Open, owned elsewhere:
 | `listCustomers` | `GET /customers` | `Customer[]` (`customers/customers.ts`). Each customer needs a stable `id`, because names repeat. |
 | `getReport` | `GET /reports/weekly` | `Report` (`reports/report.ts`) |
 | `getTeam` | `GET /team` | `TeamState` (`team/team.ts`) |
-| `getKitchenBoard` | `GET /kitchen/orders` | `KitchenBoard` (`kitchen/kitchen.ts`): shift start time, the active orders (`new`, `preparing`, `ready`) and `delivered`, the orders delivered and paid in the current shift, newest first, each with `deliveredAt`. The screen asks again every 15 s to pick up orders from other devices. |
+| `getKitchenBoard` | `GET /kitchen/orders` | `KitchenBoard` (`kitchen/kitchen.ts`): shift start time, the active orders (`new`, `preparing`, `ready`) and `delivered`, the orders delivered and paid in the current shift, newest first, each with `deliveredAt`. Changes from other devices arrive over the socket (section 6); this read is the first load. |
 | `listLiveEvents` | `GET /live-events` | `LiveEvent[]` (`live/live-console.ts`) |
-| `pollLiveEvents(afterId)` | `GET /live-events?after={id}` | `LiveEvent[]` with `id > afterId`. Event ids must only grow. |
+| `watchLiveEvents` | socket (section 6) | `LiveEvent` as each one happens. Event ids must only grow. |
 
 ## 4. Commands
 
@@ -133,8 +140,9 @@ Open, owned elsewhere:
 | `markKitchenOrderReady` | `POST /kitchen/orders/{id}/ready` | order id | `KitchenBoard` | Only a `preparing` order. |
 | `deliverKitchenOrder` | `POST /kitchen/orders/{id}/deliver` | order id | `KitchenBoard` | Only a `ready` order. The server stamps `deliveredAt` and moves the order from `orders` to the front of `delivered`. |
 | `cancelKitchenOrder` | `POST /kitchen/orders/{id}/cancel` | order id | `KitchenBoard` | Only a `new` order. It leaves the board. |
+| `closeKitchenShift` | `POST /kitchen/shift/close` | none | `KitchenBoard` | Sets `shiftClosedAt` (`HH:mm`) after the person confirms "Sí" in the pop-up. Closing a closed shift keeps the first time. The board then shows "Turno cerrado" and "Cerrar turno" is disabled. |
 
-Notes: the history belongs to the shift. When "Cerrar turno" is defined, the new shift starts with an empty history. "Late" is not stored; the screen works it out from the pickup time and the clock. Pickup
+Notes: the history belongs to the shift. "Cerrar turno" is built as a close marker only: the new shift does not yet start with an empty history, and orders can still change after the close. The history reset is open. "Late" is not stored; the screen works it out from the pickup time and the clock. Pickup
 times are `HH:mm`; the server decides how a pickup after midnight is sent. Each order carries its
 note, phone, lines and a payment note ("paga al recoger", "cobrar al entregar"). Nothing in the
 design says how the payment note is decided, so the owner of the order model must define it.
@@ -167,11 +175,33 @@ invitation?) is open, for the user and the tech lead.
 1. The dashboard's `Order` (numeric `id`, `client`, `pickupTime`) and the order log's
    `OrderEntry` (string `id` such as `#44` or `B-12`) describe the same orders in two shapes.
    Should the backend serve one order model for both screens?
-2. Live console: polling every 5 s (what the frontend does now) or a push channel (websocket or
-   server-sent events)?
+2. Real time: the frontend expects a push channel (section 6), not polling. The backend confirms the
+   transport (WebSocket, as proposed, or server-sent events) and the message shapes.
 3. Session transport and length (ISS-4), and the response for an expired session.
 4. Invitations versus `addMember` (see the note under Team).
 5. Routes, versioning and error body format: the tech lead decides. The proposal in this
    document is only a starting point.
 6. PIN unlock: how the PIN is set and stored per person, how a device is remembered, and how long
    the lock lasts (and who can clear it before that).
+
+## 6. Real time (proposal)
+
+The board and the live console do not poll. They watch a WebSocket that the backend pushes to. Every change
+arrives as one JSON text message, so a change made on the mobile app (`tomar pedidos`) reaches the kitchen
+board at once. The frontend reads it in `infrastructure/realtime/socket-realtime.ts`; while nothing watches,
+the socket is closed, and a dropped socket reconnects with a growing wait (1, 2, 5, 10, then 30 seconds).
+
+| Direction | Message | When |
+|---|---|---|
+| server → client | `{ "type": "kitchen.board", "board": KitchenBoard }` | On connect, and after every change to the kitchen board (from any device). The full board, not a diff. |
+| server → client | `{ "type": "live.event", "event": LiveEvent }` | Each event as it happens. Ids only grow. |
+
+Rules:
+1. The handshake is a normal request on the same site, so the session cookie (`bp_session`) is sent with it. An
+   expired or revoked session closes the socket. The frontend then keeps retrying; sending the person back to
+   `/login` on a 401 mid-session is still open (section 2).
+2. Unknown message types are ignored, so the backend can add messages without breaking the frontend.
+3. The socket address is set at build time with `VITE_REALTIME_URL` (for example `wss://…/ws`). Without it the demo
+   build uses the mock's own changes.
+4. Open: the socket route and whether the server pushes a full board on connect only, or also after a reconnect.
+

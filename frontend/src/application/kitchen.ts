@@ -9,3 +9,8 @@ export const markKitchenOrderReadyIn = (kitchen: KitchenRepository, id: string) 
 export const deliverKitchenOrderIn = (kitchen: KitchenRepository, id: string) => kitchen.deliver(id)
 
 export const cancelKitchenOrderIn = (kitchen: KitchenRepository, id: string) => kitchen.cancel(id)
+
+export const closeKitchenShiftIn = (kitchen: KitchenRepository) => kitchen.closeShift()
+
+export const watchKitchenBoardIn = (kitchen: KitchenRepository, onBoard: Parameters<KitchenRepository['watch']>[0]) =>
+  kitchen.watch(onBoard)

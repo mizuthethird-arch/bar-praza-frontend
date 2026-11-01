@@ -4,7 +4,7 @@ The dashboard runs against an in-memory mock backend until the real one exists. 
 what the mock holds and what you can try on each screen. All the figures, names and prices are
 invented for the demo; values in `[brackets]` are placeholders on purpose.
 
-The code lives in `src/infrastructure/mock/`; `create-mock-services.ts` wires it all together.
+The code lives in `src/infrastructure/mock/`; `create-mock-services.ts` wires the read mocks; `demo-services.ts` adds the demo logins for a demo build.
 The test `mock-data-doc.test.ts` fails if a demo login or a mock file is missing from this page.
 
 ## How the mock behaves
@@ -25,9 +25,9 @@ and after logging in you land on the page you asked for.
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Owner | `titular@barpraza.test` | `Praza-Titular-1` |
-| Kitchen | `cocina@barpraza.test` | `Praza-Cocina-1` |
-| Bar | `barra@barpraza.test` | `Praza-Barra-1` |
+| Owner | `titular@barpraza.test` | in `mock-accounts.ts` |
+| Kitchen | `cocina@barpraza.test` | in `mock-accounts.ts` |
+| Bar | `barra@barpraza.test` | in `mock-accounts.ts` |
 
 - Email ignores case and spaces around it. The password is exact.
 - Any other email, or a wrong password, shows "Email o contraseña incorrectos" (the same message
@@ -151,6 +151,13 @@ From `mock-kitchen-repository.ts`: the board for the kitchen and the bar, inside
 and dark style as the other screens (sidebar, `PageHeader`, shared cards and buttons) and behind
 the login. Open it from "Pedidos de cocina" in the sidebar.
 
+- In the demo build the board is kept in the browser's `localStorage` (`mock-kitchen-store.ts`), so
+  every open tab shows the same board, as with the backend. Without storage it stays in memory.
+- `/crear-pedido-prueba` (not in the sidebar) makes a test order (#45 onward, "Prueba", 10,00 €,
+  picked up in 20 minutes) and tries the sound. "Borrar pedidos de prueba" puts the board back
+  to its first state. The board learns of each change as it happens: in the same tab straight
+  away, and in another tab of the browser through the storage event, so a new order chimes at once.
+
 - Pickup times are set **relative to the moment the page loads**, so the board always looks like
   the design: two new orders ahead of time, one late, one ready. The shift opened 132 minutes ago.
 - Nuevos: #43 Ana (14,00 €, note "sin cebolla") and #44 Pablo (9,00 €).
@@ -178,8 +185,8 @@ the login. Open it from "Pedidos de cocina" in the sidebar.
 Try:
 - Empezar a preparar → Marcar listo → Entregado y cobrado: the order moves from Nuevos to En curso, then to Listos, then into the history column.
 - Cancelar asks "Sí, cancelar" / "No" first. Only new orders can be cancelled.
-- The board refreshes every 15 s; a new order from another device plays a chime if "Sonido activo"
-  is on. The clock and the "en N min" countdown move every 30 s.
+- A new order from another device plays a chime if "Sonido activo" is on, as it arrives (no refresh).
+  The clock and the "en N min" countdown move every 30 s.
 - "Cerrar turno" is shown but not built yet.
 
 ### Consola en vivo (`/consola`)
@@ -187,15 +194,16 @@ Try:
 From `mock-live-events-repository.ts`: a scripted evening of 8 events.
 
 - 4 events show on load.
-- One more arrives each refresh, every 5 s or with "Actualizar", until all 8 are there.
+- The mock stands in for the server's push: one more arrives every 5 s until all 8 are there.
 - Among them are a delayed order (#42) and a cancellation (#39).
-- "Pausar" stops the refresh.
+- "Pausar" holds new events back; "Reanudar" adds them to the list.
 
 ## Mock files
 
 | File | Holds |
 | --- | --- |
-| `create-mock-services.ts` | Builds every mock and wires them into the use cases (the composition root used by `main.tsx`). |
+| `create-mock-services.ts` | Wires the read mocks and the login and PIN it is given into the use cases. Takes no demo accounts. |
+| `demo-services.ts` | The demo build: the demo logins, the demo PIN and a mock session. Only a demo or development build imports it (`main.tsx`), so a production build never includes the demo accounts. |
 | `memory-store.ts` | The in-memory "server" copy. It applies each command to the latest state. |
 | `mock-accounts.ts` | The demo logins above. |
 | `mock-auth-gateway.ts` | Checks the logins, with the 500 ms delay. |

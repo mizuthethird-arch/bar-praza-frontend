@@ -1,4 +1,5 @@
 import { minutesBetween } from '../time/clock'
+import { arrivalOf } from './sort'
 
 export type KitchenStatus = 'new' | 'preparing' | 'ready'
 
@@ -29,6 +30,27 @@ export type KitchenBoard = {
   orders: KitchenOrder[]
   // Everything delivered and paid in the current shift, newest first.
   delivered: DeliveredOrder[]
+  // Set once "Cerrar turno" has been confirmed.
+  shiftClosedAt?: string
+}
+
+// Records when the shift was closed. Closing it again keeps the first time.
+export function closeShift(board: KitchenBoard, at: string): KitchenBoard {
+  return board.shiftClosedAt ? board : { ...board, shiftClosedAt: at }
+}
+
+// The number for the next order: one more than the highest "#n" in use, live or delivered.
+export function nextOrderId(board: KitchenBoard): string {
+  const numbers = [...board.orders, ...board.delivered]
+    .map((order) => /^#(\d+)$/.exec(order.id)?.[1])
+    .filter((digits): digits is string => digits !== undefined)
+    .map(Number)
+  return `#${Math.max(0, ...numbers) + 1}`
+}
+
+// A new order joins the end of the live board, as a new order that has not been started.
+export function addOrder(board: KitchenBoard, order: KitchenOrder): KitchenBoard {
+  return { ...board, orders: [...board.orders, order] }
 }
 
 // Minutes past the pickup time of an order that is still not ready; 0 otherwise.
@@ -37,11 +59,10 @@ export function delayedMinutes(order: KitchenOrder, now: string): number {
   return Math.max(0, minutesBetween(order.pickupTime, now))
 }
 
-// The board's three live columns, each in pickup order. Delivered orders are not here.
-export function boardColumns(orders: KitchenOrder[], now: string) {
-  const byPickup = (a: KitchenOrder, b: KitchenOrder) =>
-    minutesBetween(now, a.pickupTime) - minutesBetween(now, b.pickupTime)
-  const withStatus = (status: KitchenStatus) => orders.filter((order) => order.status === status).sort(byPickup)
+// The board's three live columns, each first in first out (by arrival). Delivered orders are not here.
+export function boardColumns(orders: KitchenOrder[]) {
+  const withStatus = (status: KitchenStatus) =>
+    orders.filter((order) => order.status === status).sort((a, b) => arrivalOf(a) - arrivalOf(b))
 
   return { fresh: withStatus('new'), preparing: withStatus('preparing'), ready: withStatus('ready') }
 }

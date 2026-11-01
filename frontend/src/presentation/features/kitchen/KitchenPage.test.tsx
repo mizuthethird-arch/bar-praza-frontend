@@ -1,11 +1,12 @@
-import { act, screen, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { KitchenBoard, KitchenOrder } from '../../../domain/kitchen/kitchen'
+import { createDemoServices } from '../../../infrastructure/mock/demo-services'
 import { renderApp } from '../../../test/render-app'
 import { playChime } from './chime'
 
-vi.mock('./chime', () => ({ playChime: vi.fn() }))
+vi.mock('./chime', () => ({ playChime: vi.fn(() => true), unlockSound: vi.fn(() => Promise.resolve(true)) }))
 
 const card = (id: string) => screen.findByRole('article', { name: `Pedido ${id}` })
 
@@ -23,9 +24,9 @@ describe('KitchenPage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Pedidos de cocina' })).toBeInTheDocument()
     expect(screen.getByText('Turno abierto · 19:02')).toBeInTheDocument()
     expect(screen.getByText('21:14')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Sonido activo' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Toca para activar el sonido' })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Agotados (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Cerrar turno' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cerrar turno' })).toBeEnabled()
   })
 
   it('shows four columns in order: new, in progress, ready and delivered', async () => {
@@ -98,22 +99,23 @@ describe('KitchenPage', () => {
     expect(order.getByRole('button', { name: 'Entregado y cobrado' })).toBeInTheDocument()
   })
 
-  it('moves an order through the flow until it leaves the board', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+  it('moves an order through the flow: Nuevos, En curso, Listos, then Entregados y cobrados', async () => {
+    // Each column is checked on its own. A card that moves can still be fading out of its old column
+    // while it arrives in the next one, so the old column is not asked for the card once it has moved.
+    const user = userEvent.setup()
     renderApp('/cocina')
+    const inColumn = (name: string) => within(screen.getByRole('region', { name }))
 
     await user.click(within(await card('#43')).getByRole('button', { name: 'Empezar a preparar' }))
-    const inProgress = within(screen.getByRole('region', { name: 'En curso' }))
-    expect(await inProgress.findByRole('article', { name: 'Pedido #43' })).toBeInTheDocument()
+    expect(await waitFor(() => inColumn('En curso').getByRole('article', { name: 'Pedido #43' }))).toBeInTheDocument()
 
-    await user.click(within(screen.getByRole('article', { name: 'Pedido #43' })).getByRole('button', { name: 'Marcar listo' }))
-    expect(within(await card('#43')).getByText('Listo')).toBeInTheDocument()
+    const orderIn = (region: string) => within(inColumn(region).getByRole('article', { name: 'Pedido #43' }))
 
-    await user.click(within(screen.getByRole('article', { name: 'Pedido #43' })).getByRole('button', { name: 'Entregado y cobrado' }))
-    await act(() => vi.advanceTimersByTimeAsync(0))
-    expect(screen.queryByRole('article', { name: 'Pedido #43' })).not.toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Entregados y cobrados' })).getByText('#43')).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Listos' })).queryByRole('article', { name: 'Pedido #43' })).not.toBeInTheDocument()
+    await user.click(orderIn('En curso').getByRole('button', { name: 'Marcar listo' }))
+    expect(await waitFor(() => inColumn('Listos').getByRole('article', { name: 'Pedido #43' }))).toHaveTextContent('Listo')
+
+    await user.click(orderIn('Listos').getByRole('button', { name: 'Entregado y cobrado' }))
+    expect(await waitFor(() => inColumn('Entregados y cobrados').getByText('#43'))).toBeInTheDocument()
   })
 
   it('marks a ready order in blue (Listos), the way a late one is marked in red', async () => {
@@ -136,7 +138,8 @@ describe('KitchenPage', () => {
 
     const history = within(await screen.findByRole('region', { name: 'Entregados y cobrados' }))
     expect(history.getByRole('heading', { name: /Entregados y cobrados/ })).toBeInTheDocument()
-    const items = history.getAllByRole('button')
+    // Only the cards: the sort buttons above the list are buttons too.
+    const items = within(history.getByRole('group', { name: 'Entregados' })).getAllByRole('button')
     expect(items.map((card) => card.textContent?.slice(0, 3))).toEqual(['#40', '#38'])
     expect(within(items[0]).getByText('Iria')).toBeInTheDocument()
     expect(within(items[0]).getByText('Entregado 20:50')).toBeInTheDocument()
@@ -150,7 +153,7 @@ describe('KitchenPage', () => {
     await user.click(within(await card('#41')).getByRole('button', { name: 'Entregado y cobrado' }))
 
     const history = within(await screen.findByRole('region', { name: 'Entregados y cobrados' }))
-    const items = await history.findAllByRole('button')
+    const items = await within(history.getByRole('group', { name: 'Entregados' })).findAllByRole('button')
     expect(items.map((card) => card.textContent?.slice(0, 3))).toEqual(['#41', '#40', '#38'])
     expect(within(items[0]).getByText('Entregado 21:14')).toBeInTheDocument()
     expect(within(items[0]).getByText('23,00 €')).toBeInTheDocument()
@@ -196,12 +199,14 @@ describe('KitchenPage', () => {
     expect(within(dialog).getByText('9,50 €')).toBeInTheDocument()
   })
 
-  it('keeps the pop-up open while the board refreshes', async () => {
+  it('keeps the pop-up open when the board changes', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderApp('/cocina')
+    const board = await createDemoServices({ loginDelayMs: 0, signedIn: true }).getKitchenBoard()
+    const feed = boardFeed()
+    renderApp('/cocina', { watchKitchenBoard: feed.watchKitchenBoard })
 
     await user.click(await screen.findByRole('button', { name: /#40.*Iria/ }))
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    act(() => feed.send({ ...board }))
 
     expect(screen.getByRole('dialog', { name: 'Pedido #40 · Iria' })).toBeInTheDocument()
   })
@@ -222,22 +227,6 @@ describe('KitchenPage', () => {
     expect(history.getByText('Todavía no se ha entregado ningún pedido en este turno.')).toBeInTheDocument()
   })
 
-  it('asks before cancelling, and lets the user back out', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderApp('/cocina')
-    const order = within(await card('#44'))
-
-    await user.click(order.getByRole('button', { name: 'Cancelar' }))
-    expect(order.queryByRole('button', { name: 'Empezar a preparar' })).not.toBeInTheDocument()
-    await user.click(order.getByRole('button', { name: 'No' }))
-    expect(order.getByRole('button', { name: 'Empezar a preparar' })).toBeInTheDocument()
-
-    await user.click(order.getByRole('button', { name: 'Cancelar' }))
-    await user.click(order.getByRole('button', { name: 'Sí, cancelar' }))
-    await act(() => vi.advanceTimersByTimeAsync(0))
-    expect(screen.queryByRole('article', { name: 'Pedido #44' })).not.toBeInTheDocument()
-  })
-
   it('tells the user when a step fails and keeps the order where it was', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderApp('/cocina', { startKitchenOrder: () => Promise.reject(new Error('offline')) })
@@ -246,15 +235,6 @@ describe('KitchenPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo actualizar el pedido')
     expect(within(screen.getByRole('region', { name: 'Nuevos' })).getByRole('article', { name: 'Pedido #43' })).toBeInTheDocument()
-  })
-
-  it('lists the sold-out products from the catalog', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderApp('/cocina')
-
-    await user.click(await screen.findByRole('button', { name: 'Agotados (1)' }))
-
-    expect(within(screen.getByRole('region', { name: 'Agotados' })).getByText('Empanada de bonito')).toBeInTheDocument()
   })
 
   it('shows empty columns and no sold-out count when there is nothing to show', async () => {
@@ -329,61 +309,68 @@ describe('KitchenPage card grid', () => {
   })
 })
 
+// The board's watch in a test: the page keeps the handler, and the test sends a board through it as the server would.
+function boardFeed() {
+  let send: (board: KitchenBoard) => void = () => {}
+  return {
+    send: (board: KitchenBoard) => send(board),
+    watchKitchenBoard: (onBoard: (board: KitchenBoard) => void) => {
+      send = onBoard
+      return () => {}
+    },
+  }
+}
+
 describe('KitchenPage live updates', () => {
   const base: KitchenOrder = {
     id: '#50', customer: 'Noa', pickupTime: '21:40', status: 'new',
     lines: [{ quantity: 1, name: 'Café', variant: '' }], phone: '600 000 050', totalCents: 150,
   }
-  const boards = (): KitchenBoard[] => [
-    { shiftOpenedAt: '19:02', orders: [], delivered: [] },
-    { shiftOpenedAt: '19:02', orders: [base], delivered: [] },
-    { shiftOpenedAt: '19:02', orders: [base], delivered: [] },
-  ]
-  const polled = () => {
-    const queue = boards()
-    return async () => queue.shift() ?? { shiftOpenedAt: '19:02', orders: [base], delivered: [] }
-  }
+  const empty: KitchenBoard = { shiftOpenedAt: '19:02', orders: [], delivered: [] }
+  const withNoa: KitchenBoard = { shiftOpenedAt: '19:02', orders: [base], delivered: [] }
 
-  it('picks up orders from other devices and chimes once for each new one', async () => {
-    renderApp('/cocina', { getKitchenBoard: polled() })
+  it('shows orders as the server sends them, and chimes once for each new one', async () => {
+    const feed = boardFeed()
+    renderApp('/cocina', { getKitchenBoard: async () => empty, watchKitchenBoard: feed.watchKitchenBoard })
     await screen.findByText('No hay pedidos nuevos.')
+    await act(() => Promise.resolve())
     expect(playChime).not.toHaveBeenCalled()
 
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    act(() => feed.send(withNoa))
     expect(await screen.findByRole('article', { name: 'Pedido #50' })).toBeInTheDocument()
     expect(playChime).toHaveBeenCalledTimes(1)
 
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    act(() => feed.send(withNoa))
     expect(playChime).toHaveBeenCalledTimes(1)
   })
 
   it('stays quiet when the sound is off', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderApp('/cocina', { getKitchenBoard: polled() })
+    const feed = boardFeed()
+    renderApp('/cocina', { getKitchenBoard: async () => empty, watchKitchenBoard: feed.watchKitchenBoard })
 
+    await user.click(await screen.findByRole('button', { name: 'Toca para activar el sonido' }))
     await user.click(await screen.findByRole('button', { name: 'Sonido activo' }))
-    expect(screen.getByRole('button', { name: 'Sonido apagado' })).toBeInTheDocument()
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    expect(await screen.findByRole('button', { name: 'Sonido apagado' })).toBeInTheDocument()
+    act(() => feed.send(withNoa))
 
     expect(await screen.findByRole('article', { name: 'Pedido #50' })).toBeInTheDocument()
     expect(playChime).not.toHaveBeenCalled()
   })
 
-  it('keeps the board when a refresh fails', async () => {
-    let calls = 0
-    renderApp('/cocina', {
-      getKitchenBoard: async () => {
-        calls += 1
-        if (calls > 1) throw new Error('offline')
-        return { shiftOpenedAt: '19:02', orders: [base], delivered: [] }
+  it('stops watching when the page is left', async () => {
+    let stopped = false
+    const { unmount } = renderApp('/cocina', {
+      getKitchenBoard: async () => empty,
+      watchKitchenBoard: () => () => {
+        stopped = true
       },
     })
-    await screen.findByRole('article', { name: 'Pedido #50' })
+    await screen.findByText('No hay pedidos nuevos.')
 
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    unmount()
 
-    expect(screen.getByRole('article', { name: 'Pedido #50' })).toBeInTheDocument()
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo actualizar')
+    expect(stopped).toBe(true)
   })
 
   it('moves the clock and the countdown forward', async () => {

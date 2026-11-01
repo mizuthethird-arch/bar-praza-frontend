@@ -29,7 +29,7 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**'],
       exclude: ['src/**/*.test.*', 'src/test/**', 'src/main.tsx'],
-      thresholds: { statements: 95, branches: 95, functions: 95, lines: 95 },
+      thresholds: { statements: 98, branches: 98, functions: 98, lines: 98 },
     },
   },
 })

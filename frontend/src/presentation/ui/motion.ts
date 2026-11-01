@@ -62,6 +62,11 @@ export function shouldDismiss(offsetY: number, velocityY: number): boolean {
   return offsetY > DISMISS_OFFSET_PX || velocityY > DISMISS_VELOCITY_PX_S
 }
 
+// What the sheet does when a drag ends: it closes if the drag counts as a dismissal.
+export function closeOnDragEnd(info: { offset: { y: number }; velocity: { y: number } }, close: () => void) {
+  if (shouldDismiss(info.offset.y, info.velocity.y)) close()
+}
+
 type MenuVariants = {
   panel: { hidden: Step; show: Step }
   list: Variants

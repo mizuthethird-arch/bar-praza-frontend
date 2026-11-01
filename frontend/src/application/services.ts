@@ -24,6 +24,11 @@ export interface AppServices {
   hasSession(): Promise<boolean>
   // Only where the backend has the PIN unlock. Without it the PIN button and /login/pin are not shown.
   pinUnlock?: PinUnlockServices
+  // Only in the demo build: test orders for the kitchen board, to try the sound (/crear-pedido-prueba).
+  testKitchen?: {
+    createOrder(): Promise<KitchenBoard>
+    reset(): Promise<KitchenBoard>
+  }
   getDashboard(): Promise<Dashboard>
   getScheduleOverview(): Promise<ScheduleOverview>
   pauseOrders(minutes: number): Promise<ScheduleOverview>
@@ -49,6 +54,9 @@ export interface AppServices {
   markKitchenOrderReady(id: string): Promise<KitchenBoard>
   deliverKitchenOrder(id: string): Promise<KitchenBoard>
   cancelKitchenOrder(id: string): Promise<KitchenBoard>
+  closeKitchenShift(): Promise<KitchenBoard>
   listLiveEvents(): Promise<LiveEvent[]>
-  pollLiveEvents(afterId: number): Promise<LiveEvent[]>
+  // Each change from any device, as it happens. Each returns the function that stops the watch.
+  watchKitchenBoard(onBoard: (board: KitchenBoard) => void): () => void
+  watchLiveEvents(onEvent: (event: LiveEvent) => void): () => void
 }

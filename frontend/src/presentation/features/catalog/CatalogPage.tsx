@@ -39,10 +39,10 @@ export function CatalogPage() {
               title="Carta y productos"
               actions={
                 <>
-                  <button type="button" disabled className={`px-4 py-2 opacity-40 ${outlineButton}`}>
+                  <button type="button" disabled className={`px-4 py-2 opacity-40 disabled:cursor-not-allowed ${outlineButton}`}>
                     Nueva categoría
                   </button>
-                  <button type="button" disabled className={`${primaryButton} opacity-40`}>
+                  <button type="button" disabled className={`${primaryButton} opacity-40 disabled:cursor-not-allowed`}>
                     Nuevo producto
                   </button>
                 </>

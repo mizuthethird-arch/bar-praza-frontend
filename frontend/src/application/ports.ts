@@ -84,7 +84,15 @@ export interface TeamRepository {
 
 export interface LiveEventsRepository {
   snapshot(): Promise<LiveEvent[]>
-  poll(afterId: number): Promise<LiveEvent[]>
+  // Calls onEvent for each event as it happens. Returns the function that stops the watch.
+  watch(onEvent: (event: LiveEvent) => void): () => void
+}
+
+// Where changes made on other devices come in. The mock builds use the repositories' own watch; the
+// HTTP build can pass a socket instead (infrastructure/realtime).
+export type RealtimePort = {
+  watchKitchenBoard(onBoard: (board: KitchenBoard) => void): () => void
+  watchLiveEvents(onEvent: (event: LiveEvent) => void): () => void
 }
 
 export interface KitchenRepository {
@@ -93,4 +101,7 @@ export interface KitchenRepository {
   markReady(id: string): Promise<KitchenBoard>
   deliver(id: string): Promise<KitchenBoard>
   cancel(id: string): Promise<KitchenBoard>
+  closeShift(): Promise<KitchenBoard>
+  // Calls onBoard each time the board changes, from this device or another. Returns the function that stops the watch.
+  watch(onBoard: (board: KitchenBoard) => void): () => void
 }

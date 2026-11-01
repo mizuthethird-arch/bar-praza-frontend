@@ -1,7 +1,7 @@
 import type { LiveEventsRepository } from '../../application/ports'
 import type { LiveEvent } from '../../domain/live/live-console'
 
-// Scripted day: the first four events are there at load, then one more arrives per refresh.
+// Scripted day: the first four events are there at load, then one more arrives every few seconds.
 const script: LiveEvent[] = [
   { id: 1, time: '20:40', kind: 'received', orderId: '#40', detail: 'Iria · para llevar' },
   { id: 2, time: '20:44', kind: 'received', orderId: '#41', detail: 'Lucía · para llevar' },
@@ -13,15 +13,21 @@ const script: LiveEvent[] = [
   { id: 8, time: '21:12', kind: 'received', orderId: '#44', detail: 'Pablo · para llevar' },
 ]
 
+// The demo stands in for the server's push: the next scripted event arrives every five seconds.
+const EVENT_EVERY_MS = 5000
+
 export function createMockLiveEventsRepository(): LiveEventsRepository {
   let revealed = 4
-  const visible = () => script.slice(0, revealed)
 
   return {
-    snapshot: async () => visible(),
-    poll: async (afterId) => {
-      if (revealed < script.length) revealed += 1
-      return visible().filter((event) => event.id > afterId)
+    snapshot: async () => script.slice(0, revealed),
+    watch: (onEvent) => {
+      const timer = window.setInterval(() => {
+        if (revealed >= script.length) return
+        onEvent(script[revealed])
+        revealed += 1
+      }, EVENT_EVERY_MS)
+      return () => window.clearInterval(timer)
     },
   }
 }

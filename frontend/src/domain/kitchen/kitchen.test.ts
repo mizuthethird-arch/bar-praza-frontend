@@ -40,7 +40,7 @@ describe('delayedMinutes', () => {
 })
 
 describe('boardColumns', () => {
-  it('splits the board into new, in preparation and ready, each in pickup order', () => {
+  it('splits the board into new, in preparation and ready, each first in first out', () => {
     const { fresh, preparing, ready } = boardColumns(
       [
         order({ id: '#44', pickupTime: '21:35' }),
@@ -49,16 +49,23 @@ describe('boardColumns', () => {
         order({ id: '#42', status: 'preparing', pickupTime: '21:10' }),
         order({ id: '#39', status: 'ready', pickupTime: '21:20' }),
       ],
-      '21:14',
     )
 
     expect(fresh.map((o) => o.id)).toEqual(['#43', '#44'])
     expect(preparing.map((o) => o.id)).toEqual(['#42'])
-    expect(ready.map((o) => o.id)).toEqual(['#41', '#39'])
+    expect(ready.map((o) => o.id)).toEqual(['#39', '#41'])
   })
 
-  it('orders by distance to now, so after midnight 00:10 comes after 23:50', () => {
-    const { fresh } = boardColumns([order({ id: 'a', pickupTime: '00:10' }), order({ id: 'b', pickupTime: '23:50' })], '23:40')
+  it('keeps the arrival order even when a later order is due sooner', () => {
+    const { fresh } = boardColumns(
+      [order({ id: '#50', pickupTime: '21:50' }), order({ id: '#51', pickupTime: '21:20' })],
+    )
+
+    expect(fresh.map((o) => o.id)).toEqual(['#50', '#51'])
+  })
+
+  it('keeps the board order for ids without a number', () => {
+    const { fresh } = boardColumns([order({ id: 'b', pickupTime: '21:20' }), order({ id: 'a', pickupTime: '21:10' })])
 
     expect(fresh.map((o) => o.id)).toEqual(['b', 'a'])
   })
