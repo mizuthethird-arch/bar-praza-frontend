@@ -131,12 +131,13 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     area: 'PIN',
     method: 'GET',
     path: '/auth/device',
-    status: 'branch',
+    status: 'built',
     frontend: 'real',
     screen: 'PIN screen (/login/pin)',
     summary: 'Returns the person and tablet this device remembers, shown above the keypad.',
     response: '200 { "name", "initials", "email", "device" }',
     rules: [
+      'Built in the backend (feat/pin-unlock in the backend repository; not yet in its dev branch).',
       'Only a device set up with "Recordar este dispositivo" has an answer (30-day device cookie).',
       'The keypad works before this answer arrives.',
     ],
@@ -147,7 +148,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     area: 'PIN',
     method: 'POST',
     path: '/auth/pin',
-    status: 'branch',
+    status: 'built',
     frontend: 'real',
     screen: 'PIN screen (/login/pin)',
     summary: 'Checks the PIN of the remembered device. A right PIN starts a session.',
@@ -155,6 +156,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     response:
       '200 { "result": "ok" } | { "result": "wrong", "attemptsLeft": n } | { "result": "locked" }',
     rules: [
+      'Built in the backend (feat/pin-unlock in the backend repository; not yet in its dev branch).',
       'The PIN is 4 digits. The server rejects anything else, even though the screen only sends complete PINs.',
       'After 3 wrong attempts every call answers "locked", even with the right PIN.',
       'A network or 500 failure is not counted as an attempt.',
