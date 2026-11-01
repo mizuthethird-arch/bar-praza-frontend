@@ -1,17 +1,14 @@
 import { useState, type ReactNode } from 'react'
-import type { BarSettings, Role, TeamState } from '../../../domain/team/team'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { INVITATION_DAYS, InvitationError, type BarSettings, type InvitableRole, type Role, type TeamState } from '../../../domain/team/team'
 import { useServices } from '../../app/use-services'
 import { useAsync } from '../../hooks/use-async'
 import { AsyncView } from '../../ui/async-view'
 import { bodyCell, card, fieldLabel, headCell, inputClass, primaryButton, sectionTitle, textButton } from '../../ui/classes'
 import { Page, PageHeader, Reveal } from '../../ui/Page'
+import { useRowMotion } from '../../ui/motion'
 
 const roleLabel: Record<Role, string> = { owner: 'Titular', kitchen: 'Cocina', bar: 'Barra' }
-
-function memberStatus(member: TeamState['members'][number]) {
-  if (!member.active) return 'Desactivada'
-  return member.invited ? 'Invitada' : 'Activa'
-}
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
@@ -30,10 +27,37 @@ function Error({ children }: { children: ReactNode }) {
   )
 }
 
+const statusLabel = { active: 'Activo', deactivated: 'Desactivado', invited: 'Invitado' } as const
+const statusTone = {
+  active: 'bg-emerald-950 text-emerald-300',
+  deactivated: 'bg-neutral-800 text-neutral-400',
+  invited: 'bg-amber-950 text-amber-300',
+} as const
+
+function StatusBadge({ status }: { status: keyof typeof statusLabel }) {
+  return (
+    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusTone[status]}`}>{statusLabel[status]}</span>
+  )
+}
+
+// A stored YYYY-MM-DD HH:mm as it is read on screen: 01/11 21:10.
+const formatAccess = (when: string) => {
+  const [day, time] = when.split(' ')
+  return `${day.split('-').slice(1).reverse().join('/')} ${time}`
+}
+
+const invitableLabel: Record<InvitableRole, string> = { kitchen: 'Cocina', bar: 'Barra' }
+
+// A YYYY-MM-DD day as it is written on screen: 08/11/2026.
+const formatDay = (day: string) => day.split('-').reverse().join('/')
+
 function StaffCard({ team, onChange }: { team: TeamState; onChange: (state: TeamState) => void }) {
   const services = useServices()
-  const [name, setName] = useState('')
-  const [role, setRole] = useState<Role>('kitchen')
+  const rowMotion = useRowMotion()
+  // The card's size follows its rows as they are added and removed. Only the size animates, so the text does not stretch.
+  const resize = useReducedMotion() ? false : 'size'
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState<InvitableRole>('kitchen')
   const [error, setError] = useState<string | null>(null)
 
   async function run(action: Promise<TeamState>, failure: string) {
@@ -47,18 +71,24 @@ function StaffCard({ team, onChange }: { team: TeamState; onChange: (state: Team
     }
   }
 
-  async function add() {
-    if (name.trim() === '') return setError('Indica un nombre')
-    if (await run(services.addMember({ name, role }), 'No se pudo añadir')) setName('')
+  // The team's rules say why an invitation cannot be sent (bad email, a live invitation already), so that message is shown.
+  async function invite() {
+    try {
+      onChange(await services.inviteMember({ email, role }))
+      setEmail('')
+      setError(null)
+    } catch (failure) {
+      setError(failure instanceof InvitationError ? failure.message : 'No se pudo enviar la invitación')
+    }
   }
 
   const ownerMessage = 'Tiene que quedar al menos un titular activo'
 
   return (
-    <section className={`${card} min-w-0`}>
+    <motion.section layout={resize} className={`${card} min-w-0`}>
       <h2 className={sectionTitle}>Personal</h2>
-      <div className="team-table-scroll mt-4 overflow-x-auto">
-        <table className="w-full min-w-[760px] border-collapse">
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[720px] border-collapse">
           <thead>
             <tr className="border-b border-neutral-800">
               {['Nombre', 'Rol', 'Estado', 'PIN', 'Último acceso', 'Dispositivo'].map((title) => (
@@ -72,26 +102,28 @@ function StaffCard({ team, onChange }: { team: TeamState; onChange: (state: Team
             </tr>
           </thead>
           <tbody>
+            <AnimatePresence initial={false}>
             {team.members.map((member) => (
-              <tr key={member.id} className="border-b border-neutral-800/70 last:border-0">
+              <motion.tr key={member.id} variants={rowMotion} initial="hidden" animate="show" exit="exit" className="border-b border-neutral-800/70">
                 <td className={`${bodyCell} font-medium`}>{member.name}</td>
                 <td className={bodyCell}>{roleLabel[member.role]}</td>
                 <td className={bodyCell}>
-                  {member.invited ? (
-                    <span className="rounded-full bg-sky-950 px-2 py-0.5 text-xs text-sky-300">Invitada</span>
-                  ) : (
-                    <label className="inline-flex items-center gap-2 whitespace-nowrap">
-                      <input type="checkbox" aria-label={`Activo ${member.name}`} checked={member.active} onChange={(event) => void run(services.setMemberActive(member.id, event.target.checked), ownerMessage)} className="size-4 accent-emerald-500" />
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${member.active ? 'bg-emerald-950 text-emerald-300' : 'bg-neutral-800 text-neutral-300'}`}>
-                        {memberStatus(member)}
-                      </span>
-                    </label>
-                  )}
+                  <StatusBadge status={member.active ? 'active' : 'deactivated'} />
                 </td>
-                <td className={bodyCell}>{member.pinSet ? 'Sí' : 'No'}</td>
-                <td className={`${bodyCell} whitespace-nowrap text-neutral-300`}>{member.lastAccess ?? 'Nunca'}</td>
-                <td className={`${bodyCell} whitespace-nowrap text-neutral-300`}>{member.device ?? '—'}</td>
-                <td className={`${bodyCell} text-right`}>
+                <td className={bodyCell}>{member.pinSet ? 'Configurado' : 'Sin PIN'}</td>
+                <td className={bodyCell}>{member.lastAccess ? formatAccess(member.lastAccess) : '—'}</td>
+                <td className={bodyCell}>{member.device ?? '—'}</td>
+                <td className={`${bodyCell} whitespace-nowrap text-right`}>
+                  <label className="mr-4 inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      aria-label={`Activo ${member.name}`}
+                      checked={member.active}
+                      onChange={(event) => void run(services.setMemberActive(member.id, event.target.checked), ownerMessage)}
+                      className="size-4 accent-emerald-500"
+                    />
+                    Activo
+                  </label>
                   <button
                     type="button"
                     aria-label={`Quitar ${member.name}`}
@@ -101,33 +133,62 @@ function StaffCard({ team, onChange }: { team: TeamState; onChange: (state: Team
                     Quitar
                   </button>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
+            {team.invitations.map((invitation) => (
+              <motion.tr key={invitation.id} variants={rowMotion} initial="hidden" animate="show" exit="exit" className="border-b border-neutral-800/70 text-neutral-300">
+                <td className={`${bodyCell} break-all`}>{invitation.email}</td>
+                <td className={bodyCell}>{invitableLabel[invitation.role]}</td>
+                <td className={bodyCell}>
+                  <StatusBadge status="invited" />
+                </td>
+                <td className={bodyCell}>—</td>
+                <td className={bodyCell}>—</td>
+                <td className={bodyCell}>Caduca el {formatDay(invitation.expiresOn)}</td>
+                <td className={`${bodyCell} whitespace-nowrap text-right`}>
+                  <button
+                    type="button"
+                    aria-label={`Anular invitación de ${invitation.email}`}
+                    onClick={() => void run(services.cancelInvitation(invitation.id), 'No se pudo anular la invitación')}
+                    className={textButton}
+                  >
+                    Anular
+                  </button>
+                </td>
+              </motion.tr>
+            ))}
+            </AnimatePresence>
           </tbody>
         </table>
       </div>
+      <p className="mt-2 text-xs text-neutral-400">Las invitaciones caducan a los {INVITATION_DAYS} días y solo sirven una vez.</p>
 
       <div className="mt-5 grid gap-3 border-t border-neutral-800 pt-4 sm:grid-cols-[1fr_9rem_auto] sm:items-end">
         <label className={fieldLabel}>
-          Nombre del miembro
-          <input value={name} onChange={(event) => setName(event.target.value)} className={`mt-1 ${inputClass}`} />
+          Email
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className={`mt-1 ${inputClass}`}
+          />
         </label>
         <label className={fieldLabel}>
           Rol
-          <select value={role} onChange={(event) => setRole(event.target.value as Role)} className={`mt-1 ${inputClass}`}>
-            {Object.entries(roleLabel).map(([value, label]) => (
+          <select value={role} onChange={(event) => setRole(event.target.value as InvitableRole)} className={`mt-1 ${inputClass}`}>
+            {Object.entries(invitableLabel).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
             ))}
           </select>
         </label>
-        <button type="button" onClick={() => void add()} className={primaryButton}>
-          Añadir
+        <button type="button" onClick={() => void invite()} className={primaryButton}>
+          Enviar invitación
         </button>
       </div>
       {error && <div className="mt-3"><Error>{error}</Error></div>}
-    </section>
+    </motion.section>
   )
 }
 

@@ -1,52 +1,80 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { createDemoServices } from '../../../infrastructure/mock/demo-services'
 import { renderApp } from '../../../test/render-app'
 
 describe('TeamPage', () => {
   it('lists the staff with their roles', async () => {
     renderApp('/ajustes')
 
-    const row = (await screen.findByText('[Titular]')).closest('tr')!
-    expect(within(row).getByText('Titular')).toBeInTheDocument()
-    expect(within(row).getByText('Activa')).toBeInTheDocument()
-    expect(within(row).getByText('Sí')).toBeInTheDocument()
-    expect(within(row).getByText('TABLET BARRA')).toBeInTheDocument()
-    expect(within(row).getByText('Hoy, 09:42')).toBeInTheDocument()
-    const kitchenRow = (await screen.findByText('[Uxía]')).closest('tr')!
-    expect(within(kitchenRow).getByText('Cocina')).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: 'Último acceso' })).toBeInTheDocument()
+    const row = (await screen.findByText('[Uxía]')).closest('tr')!
+    expect(within(row).getByText('Cocina')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Personal y ajustes' })).toHaveAttribute('href', '/ajustes')
   })
 
-  it('shows invited and deactivated states as well as active state', async () => {
-    const original = await createDemoServices({ loginDelayMs: 0 }).getTeam()
-    const team = { ...original, members: [{ ...original.members[0], invited: true }, { ...original.members[1], active: false }] }
-    renderApp('/ajustes', { getTeam: () => Promise.resolve(team) })
-    expect(await screen.findByText('Invitada')).toBeInTheDocument()
-    expect(screen.getByText('Desactivada')).toBeInTheDocument()
-  })
-
-  it('adds a member', async () => {
+  it('sends an invitation by email, shows it as pending, and clears the field', async () => {
     const user = userEvent.setup()
     renderApp('/ajustes')
 
-    await user.type(await screen.findByLabelText('Nombre del miembro'), 'Brais')
+    await user.type(await screen.findByLabelText('Email'), 'Brais@Bar.es')
     await user.selectOptions(screen.getByLabelText('Rol'), 'Barra')
-    await user.click(screen.getByRole('button', { name: 'Añadir' }))
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }))
 
-    const row = (await screen.findByText('Brais')).closest('tr')!
+    const row = (await screen.findByText('brais@bar.es')).closest('tr')!
     expect(within(row).getByText('Barra')).toBeInTheDocument()
+    expect(within(row).getByText('Invitado')).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toHaveValue('')
   })
 
-  it('does not add a member without a name', async () => {
+  it('shows the status, PIN, last access and device of each person', async () => {
+    renderApp('/ajustes')
+
+    const titular = (await screen.findByText('[Titular]')).closest('tr')!
+    expect(within(titular).getByText('Activo', { selector: 'span' })).toBeInTheDocument()
+    expect(within(titular).getByText('Configurado')).toBeInTheDocument()
+    expect(within(titular).getByText('01/11 21:10')).toBeInTheDocument()
+    expect(within(titular).getByText('TABLET BARRA')).toBeInTheDocument()
+
+    const uxia = (await screen.findByText('[Uxía]')).closest('tr')!
+    expect(within(uxia).getByText('Sin PIN')).toBeInTheDocument()
+    expect(within(uxia).getByText('—', { selector: 'td:nth-child(6)' })).toBeInTheDocument()
+  })
+
+  it('shows a deactivated member as such', async () => {
+    renderApp('/ajustes')
+
+    const xose = (await screen.findByText('[Xosé]')).closest('tr')!
+    expect(within(xose).getByText('Desactivado')).toBeInTheDocument()
+  })
+
+  it('cancels a pending invitation, and its row goes', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.type(await screen.findByLabelText('Email'), 'brais@bar.es')
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }))
+    await screen.findByText('brais@bar.es')
+
+    await user.click(screen.getByRole('button', { name: 'Anular invitación de brais@bar.es' }))
+
+    await waitFor(() => expect(screen.queryByText('brais@bar.es')).not.toBeInTheDocument())
+  })
+
+  it('offers only kitchen and bar, never the owner', async () => {
+    renderApp('/ajustes')
+
+    const options = within(await screen.findByLabelText('Rol')).getAllByRole('option')
+
+    expect(options.map((option) => option.textContent)).toEqual(['Cocina', 'Barra'])
+  })
+
+  it('says why an invitation cannot be sent, such as a bad email', async () => {
     const user = userEvent.setup()
     renderApp('/ajustes')
 
-    await user.click(await screen.findByRole('button', { name: 'Añadir' }))
+    await user.type(await screen.findByLabelText('Email'), 'nope')
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Indica un nombre')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Indica un email válido')
   })
 
   it('switches a member off and removes another', async () => {
@@ -58,7 +86,7 @@ describe('TeamPage', () => {
     expect(toggle).not.toBeChecked()
 
     await user.click(screen.getByRole('button', { name: 'Quitar [Xosé]' }))
-    expect(screen.queryByText('[Xosé]')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('[Xosé]')).not.toBeInTheDocument())
   })
 
   it('explains why the last owner cannot be removed', async () => {

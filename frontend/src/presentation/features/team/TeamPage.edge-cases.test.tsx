@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import { InvitationError } from '../../../domain/team/team'
 import { renderApp } from '../../../test/render-app'
 
 describe('TeamPage edge cases', () => {
@@ -15,26 +16,27 @@ describe('TeamPage edge cases', () => {
     expect(toggle).toBeChecked()
   })
 
-  it('tells the user when adding a member fails and keeps the name', async () => {
+  it('tells the user when the invitation cannot be sent, and keeps the email', async () => {
     const user = userEvent.setup()
-    renderApp('/ajustes', { addMember: () => Promise.reject(new Error('down')) })
+    renderApp('/ajustes', { inviteMember: () => Promise.reject(new Error('down')) })
 
-    await user.type(await screen.findByLabelText('Nombre del miembro'), 'Brais')
-    await user.click(screen.getByRole('button', { name: 'Añadir' }))
+    await user.type(await screen.findByLabelText('Email'), 'brais@bar.es')
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo añadir')
-    expect(screen.getByLabelText('Nombre del miembro')).toHaveValue('Brais')
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo enviar la invitación')
+    expect(screen.getByLabelText('Email')).toHaveValue('brais@bar.es')
   })
 
-  it('clears the name field after adding', async () => {
+  it('shows the rule message when the email already has a live invitation', async () => {
     const user = userEvent.setup()
-    renderApp('/ajustes')
+    renderApp('/ajustes', {
+      inviteMember: () => Promise.reject(new InvitationError('Ya hay una invitación para ese email')),
+    })
 
-    await user.type(await screen.findByLabelText('Nombre del miembro'), 'Brais')
-    await user.click(screen.getByRole('button', { name: 'Añadir' }))
+    await user.type(await screen.findByLabelText('Email'), 'brais@bar.es')
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }))
 
-    expect(await screen.findByText('Brais')).toBeInTheDocument()
-    expect(screen.getByLabelText('Nombre del miembro')).toHaveValue('')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ya hay una invitación para ese email')
   })
 
   it('tells the user when saving the settings fails', async () => {

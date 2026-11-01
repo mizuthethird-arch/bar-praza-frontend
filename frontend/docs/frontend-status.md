@@ -96,7 +96,7 @@ Found by scanning every button and link in `src/presentation/`. Items marked **d
 ### Ajustes (`/ajustes`)
 | # | Item | State | Note |
 |---|---|---|---|
-| FE-20 | "Añadir" member creates the staff member directly | conflicts with D-1 | With invitations, `addMember` should send an invitation instead. Open question for the user and tech lead (`docs/backend-contract.md`, note under Team). |
+| FE-20 | "Añadir" member creates the staff member directly | **resolved** | Replaced by "Enviar invitación": kitchen or bar by email, 7 days, works once, owner not invitable (D-1, D-2, D-3). Acceptance is the backend's (`docs/backend-contract.md`, Team). |
 
 ### Whole app
 | # | Item | State | Note |
@@ -126,7 +126,6 @@ Open decisions for the user before WP-4 can be sized:
 1. Should "Añadir plato" (FE-4) open the existing product editor or a new screen?
 2. Keep or remove the stock CSV export (FE-14)?
 3. Is "Tomar pedido (móvil)" (FE-7) in MS-2 or a later milestone?
-4. Should `addMember` send an invitation (FE-20)?
 
 ## 5. Notes for the next session
 

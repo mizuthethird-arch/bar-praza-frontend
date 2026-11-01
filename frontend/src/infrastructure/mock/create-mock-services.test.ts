@@ -45,12 +45,12 @@ describe('writes from two devices at once', () => {
     expect(items.find((i) => i.id === 'pan')?.quantity).toBe(19)
 
     await Promise.all([
-      services.addMember({ name: 'Brais', role: 'bar' }),
-      services.addMember({ name: 'Antía', role: 'kitchen' }),
+      services.inviteMember({ email: 'brais@bar.es', role: 'bar' }),
+      services.inviteMember({ email: 'antia@bar.es', role: 'kitchen' }),
     ])
-    const names = (await services.getTeam()).members.map((m) => m.name)
-    expect(names).toEqual(expect.arrayContaining(['Brais', 'Antía']))
-    expect(new Set((await services.getTeam()).members.map((m) => m.id)).size).toBe(names.length)
+    const invitations = (await services.getTeam()).invitations.map((i) => i.email)
+    expect(invitations).toEqual(expect.arrayContaining(['brais@bar.es', 'antia@bar.es']))
+    expect(new Set((await services.getTeam()).invitations.map((i) => i.id)).size).toBe(invitations.length)
 
     await Promise.all([services.archiveProduct('agua'), services.archiveProduct('cafe')])
     const ids = (await services.getCatalog()).map((p) => p.id)

@@ -1,37 +1,34 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { BarSettings } from '../domain/team/team'
-import { addMemberTo, removeMemberFrom, saveSettingsIn, setMemberActiveIn } from './manage-team'
 import type { TeamRepository } from './ports'
+import { inviteMemberTo, removeMemberFrom, saveSettingsIn, setMemberActiveIn } from './manage-team'
 
-const settings: BarSettings = { barName: ' Bar Praza ', phone: '', address: '', notifyNewOrders: true, notifyDelays: true }
-
-function repo(): TeamRepository {
-  const done = vi.fn().mockResolvedValue({})
-  return { get: vi.fn(), addMember: done, setMemberActive: done, removeMember: done, saveSettings: done }
+const repo = (): TeamRepository => {
+  const done = vi.fn().mockResolvedValue({ members: [], invitations: [], settings: {} })
+  return { get: vi.fn(), inviteMember: done, setMemberActive: done, removeMember: done, saveSettings: done } as unknown as TeamRepository
 }
 
 describe('team use cases', () => {
-  it('sends one change at a time', async () => {
+  it('sends the invitation to the repository, unchanged', async () => {
     const team = repo()
 
-    await addMemberTo(team, { name: ' Uxía ', role: 'kitchen' })
+    await inviteMemberTo(team, { email: 'a@b.es', role: 'kitchen' })
+
+    expect(team.inviteMember).toHaveBeenCalledWith({ email: 'a@b.es', role: 'kitchen' })
+  })
+
+  it('switches and removes members through the repository', async () => {
+    const team = repo()
+
     await setMemberActiveIn(team, 'm2', false)
     await removeMemberFrom(team, 'm2')
 
-    expect(team.addMember).toHaveBeenCalledWith({ name: 'Uxía', role: 'kitchen' })
     expect(team.setMemberActive).toHaveBeenCalledWith('m2', false)
     expect(team.removeMember).toHaveBeenCalledWith('m2')
   })
 
-  it('refuses a member without a name', async () => {
+  it('sends trimmed settings, and refuses a blank bar name', async () => {
     const team = repo()
-
-    await expect(addMemberTo(team, { name: ' ', role: 'bar' })).rejects.toThrow()
-    expect(team.addMember).not.toHaveBeenCalled()
-  })
-
-  it('sends trimmed settings but needs a bar name', async () => {
-    const team = repo()
+    const settings = { barName: ' Bar Praza ', phone: '', address: '', notifyNewOrders: true, notifyDelays: true }
 
     await saveSettingsIn(team, settings)
     expect(team.saveSettings).toHaveBeenCalledWith({ ...settings, barName: 'Bar Praza' })
