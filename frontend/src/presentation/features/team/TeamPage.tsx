@@ -20,8 +20,9 @@ import { Toast } from '../../ui/Toast'
 import { MemberEditDialog } from './MemberEditDialog'
 import { DevicesDialog } from './DevicesDialog'
 import { PinDialog } from './PinDialog'
+import { RolesCard } from './RolesCard'
+import { roleLabel } from './role-labels'
 
-const roleLabel: Record<Role, string> = { owner: 'Titular', kitchen: 'Cocina', bar: 'Barra' }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
@@ -355,6 +356,9 @@ export function TeamPage() {
                 <SettingsCard settings={loaded.settings} onSaved={setChanged} />
               </Reveal>
             </div>
+            <Reveal>
+              <RolesCard />
+            </Reveal>
           </Page>
         )
       }}

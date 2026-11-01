@@ -90,7 +90,7 @@ Found by scanning every button and link in `src/presentation/`. Items marked **d
 | FE-15 | Invitation landing page (set password) | not built | D-1 and D-2: new staff join through an invitation link. This is WP-2.2 and is missing. |
 | FE-16 | Invitation rules on the login page | not built | WP-2.5: no public sign-up link. Confirm the login page has none. |
 | FE-17 | Response to `401` mid-session (back to `/login`) | not built | `docs/backend-contract.md` section 2. Depends on the session decision (ISS-4). |
-| FE-18 | Role-based pages | not built | All three roles see every page (`docs/mock-data.md`). |
+| FE-18 | Role-based pages | not built | All three roles see every page (`docs/mock-data.md`). The roles and permissions card on `/ajustes` (read-only, FE-AJ-10) shows the decided rules; page access and the rest of the matrix are marked "Por decidir" until the permissions decision. |
 | FE-19 | Password rules | not built | Depends on ISS-7. |
 
 ### Ajustes (`/ajustes`)
