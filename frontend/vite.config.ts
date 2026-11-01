@@ -22,6 +22,13 @@ export default defineConfig({
       },
     }),
   ],
+  // In development the browser calls the API through this server (VITE_API_URL=/api), so it works from any
+  // address that opens the app, such as a phone over Tailscale. The backend stays on its own port.
+  server: {
+    proxy: {
+      '/api': { target: 'http://localhost:3000', rewrite: (path) => path.replace(/^\/api/, '') },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
