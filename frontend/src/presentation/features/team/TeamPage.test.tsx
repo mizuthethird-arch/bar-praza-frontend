@@ -84,6 +84,48 @@ describe('TeamPage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Se enviará la invitación a brais@bar.es')
   })
 
+  it('edits the name and role of a staff member in a pop-up, and the row shows them', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+    const name = within(dialog).getByLabelText('Nombre')
+    await user.clear(name)
+    await user.type(name, 'Uxía Pérez')
+    await user.selectOptions(within(dialog).getByLabelText('Rol'), 'bar')
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    const row = (await screen.findByText('Uxía Pérez')).closest('tr')!
+    expect(within(row).getByText('Barra')).toBeInTheDocument()
+    expect(screen.queryByText('[Uxía]')).not.toBeInTheDocument()
+  })
+
+  it('leaves the member as they were when the pop-up is closed with Cancelar', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+    await user.type(within(dialog).getByLabelText('Nombre'), ' extra')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByText('[Uxía]')).toBeInTheDocument()
+  })
+
+  it('shows the owner role as fixed in the pop-up, with no role to choose', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Titular]' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Titular]' })
+    expect(within(dialog).getByLabelText('Nombre')).toBeInTheDocument()
+    expect(within(dialog).queryByLabelText('Rol')).not.toBeInTheDocument()
+    expect(within(dialog).getByText('Titular (no se puede cambiar)')).toBeInTheDocument()
+  })
+
   it('offers only kitchen and bar, never the owner', async () => {
     renderApp('/ajustes')
 

@@ -11,6 +11,7 @@ import {
   inviteMemberTo,
   removeMemberFrom,
   resendInvitationIn,
+  updateMemberIn,
   saveSettingsIn,
   setMemberActiveIn,
 } from '../../application/manage-team'
@@ -94,6 +95,7 @@ export function createMockServices({ auth, pin, kitchenStorage, realtime }: Opti
     inviteMember: (invite) => inviteMemberTo(team, invite),
     cancelInvitation: (id) => cancelInvitationIn(team, id),
     resendInvitation: (id) => resendInvitationIn(team, id),
+    updateMember: (id, changes) => updateMemberIn(team, id, changes),
     setMemberActive: (id, active) => setMemberActiveIn(team, id, active),
     removeMember: (id) => removeMemberFrom(team, id),
     saveSettings: (settings) => saveSettingsIn(team, settings),

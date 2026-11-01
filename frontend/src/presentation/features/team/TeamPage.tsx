@@ -1,6 +1,13 @@
 import { useState, type ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { INVITATION_DAYS, InvitationError, type BarSettings, type InvitableRole, type Role, type TeamState } from '../../../domain/team/team'
+import {
+  INVITATION_DAYS,
+  InvitationError,
+  type BarSettings,
+  type InvitableRole,
+  type Role,
+  type TeamState,
+} from '../../../domain/team/team'
 import { useServices } from '../../app/use-services'
 import { useAsync } from '../../hooks/use-async'
 import { AsyncView } from '../../ui/async-view'
@@ -8,6 +15,7 @@ import { bodyCell, card, fieldLabel, headCell, inputClass, primaryButton, sectio
 import { Page, PageHeader, Reveal } from '../../ui/Page'
 import { useRowMotion } from '../../ui/motion'
 import { Toast } from '../../ui/Toast'
+import { MemberEditDialog } from './MemberEditDialog'
 
 const roleLabel: Record<Role, string> = { owner: 'Titular', kitchen: 'Cocina', bar: 'Barra' }
 
@@ -60,6 +68,9 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<InvitableRole>('kitchen')
   const [error, setError] = useState<string | null>(null)
+  // The member whose edit pop-up is open.
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const editing = team.members.find((member) => member.id === editingId) ?? null
 
   async function run(action: Promise<TeamState>, failure: string) {
     try {
@@ -88,6 +99,12 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
     if (await run(services.resendInvitation(id), 'No se pudo reenviar la invitación')) {
       onNotice(`Se enviará la invitación a ${email}`)
     }
+  }
+
+  // The edit pop-up keeps itself open with the error when the team's rules refuse the change.
+  async function saveEdit(id: string, changes: { name: string; role: Role }) {
+    onChange(await services.updateMember(id, changes))
+    setEditingId(null)
   }
 
   const ownerMessage = 'Tiene que quedar al menos un titular activo'
@@ -132,6 +149,9 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
                     />
                     Activo
                   </label>
+                  <button type="button" aria-label={`Editar ${member.name}`} onClick={() => setEditingId(member.id)} className={`${textButton} mr-4`}>
+                    Editar
+                  </button>
                   <button
                     type="button"
                     aria-label={`Quitar ${member.name}`}
@@ -204,6 +224,16 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
         </button>
       </div>
       {error && <div className="mt-3"><Error>{error}</Error></div>}
+      <AnimatePresence>
+        {editing && (
+          <MemberEditDialog
+            key={editing.id}
+            member={editing}
+            onSave={(changes) => saveEdit(editing.id, changes)}
+            onClose={() => setEditingId(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.section>
   )
 }
