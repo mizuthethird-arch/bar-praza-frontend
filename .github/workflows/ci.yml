@@ -29,6 +29,22 @@ jobs:
       - name: Run checks in the container
         run: docker build --target check --tag barpraza-check:${{ github.sha }} frontend
 
+      # The default build (no VITE_DEMO_MODE) must not contain the demo accounts. grep exits 0 when it finds
+      # one, 1 when it finds none, and anything else means the container itself failed.
+      - name: Default build must not contain demo accounts
+        run: |
+          set +e
+          docker run --rm barpraza-check:${{ github.sha }} grep -rIl 'barpraza\.test' /app/dist
+          rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "::error::Demo accounts found in a build made without VITE_DEMO_MODE."
+            exit 1
+          fi
+          if [ "$rc" -ne 1 ]; then
+            echo "::error::The grep container failed (exit $rc)."
+            exit 1
+          fi
+
   audit:
     name: Dependency audit (high and critical)
     runs-on: ubuntu-latest
