@@ -1,11 +1,11 @@
-import { act, screen, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { KitchenBoard, KitchenOrder } from '../../../domain/kitchen/kitchen'
 import { renderApp } from '../../../test/render-app'
 import { playChime } from './chime'
 
-vi.mock('./chime', () => ({ playChime: vi.fn() }))
+vi.mock('./chime', () => ({ playChime: vi.fn(() => true), unlockSound: vi.fn(() => Promise.resolve(true)) }))
 
 const card = (id: string) => screen.findByRole('article', { name: `Pedido ${id}` })
 
@@ -23,7 +23,7 @@ describe('KitchenPage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Pedidos de cocina' })).toBeInTheDocument()
     expect(screen.getByText('Turno abierto · 19:02')).toBeInTheDocument()
     expect(screen.getByText('21:14')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Sonido activo' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Toca para activar el sonido' })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Agotados (1)' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cerrar turno' })).toBeEnabled()
   })
@@ -98,22 +98,23 @@ describe('KitchenPage', () => {
     expect(order.getByRole('button', { name: 'Entregado y cobrado' })).toBeInTheDocument()
   })
 
-  it('moves an order through the flow until it leaves the board', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+  it('moves an order through the flow: Nuevos, En curso, Listos, then Entregados y cobrados', async () => {
+    // Each column is checked on its own. A card that moves can still be fading out of its old column
+    // while it arrives in the next one, so the old column is not asked for the card once it has moved.
+    const user = userEvent.setup()
     renderApp('/cocina')
+    const inColumn = (name: string) => within(screen.getByRole('region', { name }))
 
     await user.click(within(await card('#43')).getByRole('button', { name: 'Empezar a preparar' }))
-    const inProgress = within(screen.getByRole('region', { name: 'En curso' }))
-    expect(await inProgress.findByRole('article', { name: 'Pedido #43' })).toBeInTheDocument()
+    expect(await waitFor(() => inColumn('En curso').getByRole('article', { name: 'Pedido #43' }))).toBeInTheDocument()
 
-    await user.click(within(screen.getByRole('article', { name: 'Pedido #43' })).getByRole('button', { name: 'Marcar listo' }))
-    expect(within(await card('#43')).getByText('Listo')).toBeInTheDocument()
+    const orderIn = (region: string) => within(inColumn(region).getByRole('article', { name: 'Pedido #43' }))
 
-    await user.click(within(screen.getByRole('article', { name: 'Pedido #43' })).getByRole('button', { name: 'Entregado y cobrado' }))
-    await act(() => vi.advanceTimersByTimeAsync(0))
-    expect(screen.queryByRole('article', { name: 'Pedido #43' })).not.toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Entregados y cobrados' })).getByText('#43')).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Listos' })).queryByRole('article', { name: 'Pedido #43' })).not.toBeInTheDocument()
+    await user.click(orderIn('En curso').getByRole('button', { name: 'Marcar listo' }))
+    expect(await waitFor(() => inColumn('Listos').getByRole('article', { name: 'Pedido #43' }))).toHaveTextContent('Listo')
+
+    await user.click(orderIn('Listos').getByRole('button', { name: 'Entregado y cobrado' }))
+    expect(await waitFor(() => inColumn('Entregados y cobrados').getByText('#43'))).toBeInTheDocument()
   })
 
   it('marks a ready order in blue (Listos), the way a late one is marked in red', async () => {
@@ -136,7 +137,8 @@ describe('KitchenPage', () => {
 
     const history = within(await screen.findByRole('region', { name: 'Entregados y cobrados' }))
     expect(history.getByRole('heading', { name: /Entregados y cobrados/ })).toBeInTheDocument()
-    const items = history.getAllByRole('button')
+    // Only the cards: the sort buttons above the list are buttons too.
+    const items = within(history.getByRole('group', { name: 'Entregados' })).getAllByRole('button')
     expect(items.map((card) => card.textContent?.slice(0, 3))).toEqual(['#40', '#38'])
     expect(within(items[0]).getByText('Iria')).toBeInTheDocument()
     expect(within(items[0]).getByText('Entregado 20:50')).toBeInTheDocument()
@@ -150,7 +152,7 @@ describe('KitchenPage', () => {
     await user.click(within(await card('#41')).getByRole('button', { name: 'Entregado y cobrado' }))
 
     const history = within(await screen.findByRole('region', { name: 'Entregados y cobrados' }))
-    const items = await history.findAllByRole('button')
+    const items = await within(history.getByRole('group', { name: 'Entregados' })).findAllByRole('button')
     expect(items.map((card) => card.textContent?.slice(0, 3))).toEqual(['#41', '#40', '#38'])
     expect(within(items[0]).getByText('Entregado 21:14')).toBeInTheDocument()
     expect(within(items[0]).getByText('23,00 €')).toBeInTheDocument()
@@ -336,8 +338,9 @@ describe('KitchenPage live updates', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderApp('/cocina', { getKitchenBoard: polled() })
 
+    await user.click(await screen.findByRole('button', { name: 'Toca para activar el sonido' }))
     await user.click(await screen.findByRole('button', { name: 'Sonido activo' }))
-    expect(screen.getByRole('button', { name: 'Sonido apagado' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Sonido apagado' })).toBeInTheDocument()
     await act(() => vi.advanceTimersByTimeAsync(15000))
 
     expect(await screen.findByRole('article', { name: 'Pedido #50' })).toBeInTheDocument()

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { delayedMinutes, type KitchenOrder } from '../../../domain/kitchen/kitchen'
 import { minutesBetween } from '../../../domain/time/clock'
 import { formatEuros } from '../../format/money'
@@ -35,13 +35,28 @@ function toneOf(order: KitchenOrder, late: number) {
 
 // The order's own area of the card opens its details. The phone and the action buttons sit
 // outside that area, so pressing them never opens the details.
+// A card keeps its id across columns, so moving it from one column to the next slides it there
+// (layoutId), while arriving and leaving fade and slide in and out.
+const cardMotion = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -12 },
+  transition: { duration: 0.45, ease: [0.32, 0.72, 0, 1] as const },
+}
+
 export function KitchenOrderCard({ order, now, onStart, onReady, onDeliver, onCancel }: Props) {
   const [openDetail, setOpenDetail] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const late = delayedMinutes(order, now)
 
   return (
-    <article aria-label={`Pedido ${order.id}`} className={`${cardShell} ${toneOf(order, late)}`}>
+    <motion.article
+      layout
+      layoutId={`order-${order.id}`}
+      {...cardMotion}
+      aria-label={`Pedido ${order.id}`}
+      className={`${cardShell} ${toneOf(order, late)}`}
+    >
       <button type="button" aria-haspopup="dialog" onClick={() => setOpenDetail(true)} className="flex w-full min-w-0 flex-1 flex-col text-left">
         <span className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
           <span className="flex flex-wrap items-center gap-3">
@@ -117,6 +132,6 @@ export function KitchenOrderCard({ order, now, onStart, onReady, onDeliver, onCa
           />
         )}
       </AnimatePresence>
-    </article>
+    </motion.article>
   )
 }

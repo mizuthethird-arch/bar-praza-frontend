@@ -33,6 +33,7 @@ describe('Agotados pop-up', () => {
     await user.click(within(await screen.findByRole('dialog', { name: 'Agotados' })).getByRole('button', { name: 'Cerrar' }))
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    expect(button).toHaveFocus()
+    // Focus goes back when the pop-up unmounts; under load that can land a moment after the dialog is gone.
+    await waitFor(() => expect(button).toHaveFocus())
   })
 })

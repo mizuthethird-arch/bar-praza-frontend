@@ -1,18 +1,37 @@
 import type { KitchenRepository } from '../../application/ports'
 import {
+  addOrder,
   cancelKitchenOrder,
   closeShift,
   completeDelivery,
   markReady,
+  nextOrderId,
   startPreparing,
   type DeliveredOrder,
   type KitchenBoard,
   type KitchenOrder,
 } from '../../domain/kitchen/kitchen'
 import { addMinutes, clockOf } from '../../domain/time/clock'
-import { memoryStore } from './memory-store'
+import { kitchenStore, type BoardStorage } from './mock-kitchen-store'
 
-type Options = { now?: () => Date }
+type Options = {
+  now?: () => Date
+  // Where the board is kept between tabs (the demo build passes localStorage). Memory when left out.
+  storage?: BoardStorage
+}
+
+export type MockKitchenRepository = KitchenRepository & {
+  // Adds a test order that is ready to try the sound with, and returns the new board.
+  createTestOrder(): Promise<KitchenBoard>
+  // Puts the board back to its first state, without any test orders.
+  reset(): Promise<KitchenBoard>
+}
+
+// A test order: a plain bocadillo, picked up in 20 minutes, paid when collected.
+const testOrder = (id: string, pickupTime: string): KitchenOrder => ({
+  id, customer: 'Prueba', pickupTime, status: 'new', phone: '600 000 099', totalCents: 1000,
+  paymentNote: 'paga al recoger', lines: [{ quantity: 1, name: 'Bocadillo de prueba', variant: '' }],
+})
 
 // Pickup times are set relative to the moment the mock is built, so the board always
 // looks like the evening on the design (21:14): two orders ahead of time, one late, one ready.
@@ -77,8 +96,8 @@ function seed(now: Date): KitchenBoard {
   }
 }
 
-export function createMockKitchenRepository({ now = () => new Date() }: Options = {}): KitchenRepository {
-  const store = memoryStore(seed(now()))
+export function createMockKitchenRepository({ now = () => new Date(), storage }: Options = {}): MockKitchenRepository {
+  const store = kitchenStore(storage, () => seed(now()))
   const change = (apply: (orders: KitchenOrder[]) => KitchenOrder[]) =>
     store.change((board) => ({ ...board, orders: apply(board.orders) }))
 
@@ -89,5 +108,8 @@ export function createMockKitchenRepository({ now = () => new Date() }: Options 
     deliver: (id) => store.change((board) => completeDelivery(board, id, clockOf(now()))),
     cancel: (id) => change((orders) => cancelKitchenOrder(orders, id)),
     closeShift: () => store.change((board) => closeShift(board, clockOf(now()))),
+    createTestOrder: () =>
+      store.change((board) => addOrder(board, testOrder(nextOrderId(board), addMinutes(clockOf(now()), 20)))),
+    reset: () => store.change(() => seed(now())),
   }
 }

@@ -151,6 +151,13 @@ From `mock-kitchen-repository.ts`: the board for the kitchen and the bar, inside
 and dark style as the other screens (sidebar, `PageHeader`, shared cards and buttons) and behind
 the login. Open it from "Pedidos de cocina" in the sidebar.
 
+- In the demo build the board is kept in the browser's `localStorage` (`mock-kitchen-store.ts`), so
+  every open tab shows the same board, as with the backend. Without storage it stays in memory.
+- `/crear-pedido-prueba` (not in the sidebar) makes a test order (#45 onward, "Prueba", 10,00 €,
+  picked up in 20 minutes) and tries the sound. "Borrar pedidos de prueba" puts the board back
+  to its first state. The kitchen board picks up new orders on its 15-second refresh, so a new
+  order chimes within 15 seconds in any open tab.
+
 - Pickup times are set **relative to the moment the page loads**, so the board always looks like
   the design: two new orders ahead of time, one late, one ready. The shift opened 132 minutes ago.
 - Nuevos: #43 Ana (14,00 €, note "sin cebolla") and #44 Pablo (9,00 €).

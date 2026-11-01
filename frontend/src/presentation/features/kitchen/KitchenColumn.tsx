@@ -19,10 +19,24 @@ export function ColumnTitle({ title, count }: { title: string; count?: number })
   )
 }
 
-export function Column({ title, count, className, children }: { title: string; count?: number; className?: string; children: ReactNode }) {
+// The controls (for example, how to sort the column) sit between the title and the cards.
+export function Column({
+  title,
+  count,
+  className,
+  controls,
+  children,
+}: {
+  title: string
+  count?: number
+  className?: string
+  controls?: ReactNode
+  children: ReactNode
+}) {
   return (
     <section aria-label={title} className={`min-w-0 ${className ?? ''}`}>
       <ColumnTitle title={title} count={count} />
+      {controls && <div className="mb-4">{controls}</div>}
       <div className="space-y-4">{children}</div>
     </section>
   )
