@@ -29,6 +29,22 @@ export type Invitation = {
   expiresOn: string
 }
 
+// A device that remembers a staff member, so the PIN opens it. Only an active device can be disconnected.
+export type DeviceStatus = 'active' | 'disconnected' | 'expired'
+
+export type StaffDevice = {
+  id: string
+  memberId: string
+  name: string
+  // The day the device started remembering the member, as YYYY-MM-DD.
+  rememberedOn: string
+  // The last time it was used, as YYYY-MM-DD HH:mm, or null when it never was.
+  lastUsed: string | null
+  status: DeviceStatus
+  // The day it stopped being remembered, as YYYY-MM-DD, or null while it is active.
+  endedOn: string | null
+}
+
 export type BarSettings = {
   barName: string
   phone: string
@@ -122,6 +138,21 @@ export function setMemberActive(members: StaffMember[], id: string, active: bool
   const next = members.map((member) => (member.id === id ? { ...member, active } : member))
   assertKeepsAnOwner(members, next)
   return next
+}
+
+// One member's devices, with the active ones first; the rest are the history.
+export function devicesOf(devices: StaffDevice[], memberId: string): StaffDevice[] {
+  const active = devices.filter((device) => device.memberId === memberId && device.status === 'active')
+  const history = devices.filter((device) => device.memberId === memberId && device.status !== 'active')
+  return [...active, ...history]
+}
+
+// Disconnects a device: the next visit from it asks for the password again. `today` is the day, as YYYY-MM-DD.
+export function disconnectDevice(devices: StaffDevice[], memberId: string, deviceId: string, today: string): StaffDevice[] {
+  const device = devices.find((item) => item.id === deviceId && item.memberId === memberId)
+  if (!device) throw new MemberError('Ese dispositivo ya no existe')
+  if (device.status !== 'active') throw new MemberError('Ese dispositivo ya no está conectado')
+  return devices.map((item) => (item.id === deviceId ? { ...item, status: 'disconnected', endedOn: today } : item))
 }
 
 // The member a password recovery link is sent to. A deactivated member is not sent one: reactivate them first.

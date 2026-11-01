@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { InvitationError } from '../../../domain/team/team'
+import { InvitationError, MemberError, type StaffDevice } from '../../../domain/team/team'
 import { renderApp } from '../../../test/render-app'
 
 describe('TeamPage edge cases', () => {
@@ -181,5 +181,61 @@ describe('TeamPage edge cases', () => {
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo enviar el enlace')
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('tells the user when the devices cannot be loaded', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { listDevices: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Dispositivos de [Uxía]' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron cargar los dispositivos')
+  })
+
+  it('tells the user when a device cannot be disconnected, and keeps it listed', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { disconnectDevice: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Dispositivos de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Dispositivos · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Desconectar Tablet cocina de [Uxía]' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo desconectar el dispositivo')
+    expect(within(dialog).getByRole('button', { name: 'Desconectar Tablet cocina de [Uxía]' })).toBeInTheDocument()
+  })
+
+  it('shows a device that was never used, and one that expired with no end day', async () => {
+    const user = userEvent.setup()
+    const devices: StaffDevice[] = [
+      { id: 'x1', memberId: 'm2', name: 'Tablet nueva', rememberedOn: '2026-10-28', lastUsed: null, status: 'active', endedOn: null },
+      { id: 'x2', memberId: 'm2', name: 'Móvil sin fin', rememberedOn: '2026-09-02', lastUsed: null, status: 'expired', endedOn: null },
+    ]
+    renderApp('/ajustes', { listDevices: () => Promise.resolve(devices) })
+    await user.click(await screen.findByRole('button', { name: 'Dispositivos de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Dispositivos · [Uxía]' })
+
+    expect(within(dialog).getAllByText(/último uso nunca/)).toHaveLength(2)
+    expect(within(dialog).getByText(/Caducado el —/)).toBeInTheDocument()
+  })
+
+  it('shows the rule message when a device is no longer connected', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { disconnectDevice: () => Promise.reject(new MemberError('Ese dispositivo ya no está conectado')) })
+    await user.click(await screen.findByRole('button', { name: 'Dispositivos de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Dispositivos · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Desconectar Tablet cocina de [Uxía]' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Ese dispositivo ya no está conectado')
+  })
+
+  it('tells the user when the recovery link is refused by the rules', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { sendPasswordReset: () => Promise.reject(new MemberError('Reactiva a la persona antes de enviarle el enlace')) })
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Enviar enlace para cambiar la contraseña' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Reactiva a la persona antes de enviarle el enlace')
   })
 })

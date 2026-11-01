@@ -21,6 +21,12 @@ export const removeMemberFrom = (team: TeamRepository, id: string) => team.remov
 // Sends the member a link to choose a new password. The backend sends the email; the link works once.
 export const sendPasswordResetIn = (team: TeamRepository, id: string) => team.sendPasswordReset(id)
 
+// A member's remembered devices, the active ones first. Disconnecting one answers with the member's list again.
+export const listDevicesOf = (team: TeamRepository, memberId: string) => team.listDevices(memberId)
+
+export const disconnectDeviceIn = (team: TeamRepository, memberId: string, deviceId: string) =>
+  team.disconnectDevice(memberId, deviceId)
+
 export const updateMemberIn = (team: TeamRepository, id: string, changes: { name: string; role: Role }) =>
   team.updateMember(id, changes)
 

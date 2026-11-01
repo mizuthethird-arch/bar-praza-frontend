@@ -5,7 +5,7 @@ import type { Product } from '../domain/menu/product'
 import type { OrderEntry } from '../domain/orders/order-log'
 import type { Report } from '../domain/reports/report'
 import type { StockMovement, StockState } from '../domain/stock/stock'
-import type { BarSettings, InvitableRole, Role, TeamState } from '../domain/team/team'
+import type { BarSettings, InvitableRole, Role, StaffDevice, TeamState } from '../domain/team/team'
 import type { Credentials } from '../domain/auth/credentials'
 import type { PinResult } from '../domain/auth/pin'
 import type { RememberedDevice } from '../domain/auth/remembered-device'
@@ -52,6 +52,8 @@ export interface AppServices {
   setMemberPin(id: string, pin: string): Promise<TeamState>
   removeMember(id: string): Promise<TeamState>
   sendPasswordReset(id: string): Promise<void>
+  listDevices(memberId: string): Promise<StaffDevice[]>
+  disconnectDevice(memberId: string, deviceId: string): Promise<StaffDevice[]>
   updateMember(id: string, changes: { name: string; role: Role }): Promise<TeamState>
   saveSettings(settings: BarSettings): Promise<TeamState>
   getKitchenBoard(): Promise<KitchenBoard>
