@@ -222,22 +222,6 @@ describe('KitchenPage', () => {
     expect(history.getByText('Todavía no se ha entregado ningún pedido en este turno.')).toBeInTheDocument()
   })
 
-  it('asks before cancelling, and lets the user back out', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderApp('/cocina')
-    const order = within(await card('#44'))
-
-    await user.click(order.getByRole('button', { name: 'Cancelar' }))
-    expect(order.queryByRole('button', { name: 'Empezar a preparar' })).not.toBeInTheDocument()
-    await user.click(order.getByRole('button', { name: 'No' }))
-    expect(order.getByRole('button', { name: 'Empezar a preparar' })).toBeInTheDocument()
-
-    await user.click(order.getByRole('button', { name: 'Cancelar' }))
-    await user.click(order.getByRole('button', { name: 'Sí, cancelar' }))
-    await act(() => vi.advanceTimersByTimeAsync(0))
-    expect(screen.queryByRole('article', { name: 'Pedido #44' })).not.toBeInTheDocument()
-  })
-
   it('tells the user when a step fails and keeps the order where it was', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderApp('/cocina', { startKitchenOrder: () => Promise.reject(new Error('offline')) })

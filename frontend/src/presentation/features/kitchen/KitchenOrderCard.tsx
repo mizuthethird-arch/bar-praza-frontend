@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { delayedMinutes, type KitchenOrder } from '../../../domain/kitchen/kitchen'
 import { minutesBetween } from '../../../domain/time/clock'
 import { formatEuros } from '../../format/money'
-import { outlineButton, primaryButton, deliverButton } from '../../ui/classes'
+import { dangerButton, deliverButton, primaryButton } from '../../ui/classes'
 import { cardShell, neutralTone } from './KitchenColumn'
+import { CancelOrderDialog } from './CancelOrderDialog'
+import { OrderDetailDialog } from './OrderDetailDialog'
 
 type Props = {
   order: KitchenOrder
@@ -30,73 +33,64 @@ function toneOf(order: KitchenOrder, late: number) {
   return neutralTone
 }
 
+// The order's own area of the card opens its details. The phone and the action buttons sit
+// outside that area, so pressing them never opens the details.
 export function KitchenOrderCard({ order, now, onStart, onReady, onDeliver, onCancel }: Props) {
+  const [openDetail, setOpenDetail] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const late = delayedMinutes(order, now)
 
   return (
-    <article
-      aria-label={`Pedido ${order.id}`}
-      className={`${cardShell} ${toneOf(order, late)}`}
-    >
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
-        <h3 className="flex flex-wrap items-center gap-3">
-          <span className="text-2xl font-bold">{order.id}</span>
-          <span className="font-semibold">{order.customer}</span>
-          {late > 0 && <span className={`${badge} bg-red-900 text-red-100`}>Retrasado {late} min</span>}
-          {order.status === 'ready' && <span className={`${badge} bg-sky-900 text-sky-100`}>Listo</span>}
-        </h3>
-        <When order={order} now={now} />
-      </header>
+    <article aria-label={`Pedido ${order.id}`} className={`${cardShell} ${toneOf(order, late)}`}>
+      <button type="button" aria-haspopup="dialog" onClick={() => setOpenDetail(true)} className="flex w-full min-w-0 flex-1 flex-col text-left">
+        <span className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+          <span className="flex flex-wrap items-center gap-3">
+            <span className="text-2xl font-bold">{order.id}</span>
+            <span className="font-semibold">{order.customer}</span>
+            {late > 0 && <span className={`${badge} bg-red-900 text-red-100`}>Retrasado {late} min</span>}
+            {order.status === 'ready' && <span className={`${badge} bg-sky-900 text-sky-100`}>Listo</span>}
+          </span>
+          <When order={order} now={now} />
+        </span>
 
-      <div className="mt-4 flex-1 space-y-3">
-        <ul className="space-y-1 border-t border-neutral-800 pt-4 text-sm">
-          {order.lines.map((line, index) => (
-            <li key={index}>
-              {line.quantity}× {line.name}
-              {line.variant && ` · ${line.variant}`}
-              {line.detail && ` (${line.detail})`}
-            </li>
-          ))}
-        </ul>
+        <span className="mt-4 flex-1 space-y-3">
+          <span className="block space-y-1 border-t border-neutral-800 pt-4 text-sm">
+            {order.lines.map((line, index) => (
+              <span key={index} className="block">
+                {line.quantity}× {line.name}
+                {line.variant && ` · ${line.variant}`}
+                {line.detail && ` (${line.detail})`}
+              </span>
+            ))}
+          </span>
 
-        {order.note && (
-          <p className="rounded-md bg-red-950/40 px-3 py-2 text-sm font-semibold text-red-300">Nota: {order.note}</p>
-        )}
-      </div>
+          {order.note && (
+            <span className="block rounded-md bg-red-950/40 px-3 py-2 text-sm font-semibold text-red-300">Nota: {order.note}</span>
+          )}
+        </span>
+
+        <span className="mt-4 block text-sm text-neutral-400">
+          {formatEuros(order.totalCents)}
+          {order.paymentNote && ` · ${order.paymentNote}`}
+        </span>
+      </button>
 
       <div className="mt-auto pt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <a href={`tel:${order.phone.replaceAll(' ', '')}`} className="underline underline-offset-4">
-            {order.phone}
-          </a>
-          <span className="text-neutral-400">
-            {formatEuros(order.totalCents)}
-            {order.paymentNote && ` · ${order.paymentNote}`}
-          </span>
-        </div>
+        <a href={`tel:${order.phone.replaceAll(' ', '')}`} className="inline-block text-sm underline underline-offset-4">
+          {order.phone}
+        </a>
 
         <div className="mt-4 flex flex-col gap-2">
-          {order.status === 'new' &&
-            (confirming ? (
-              <>
-                <button type="button" onClick={onCancel} className={`${button} text-red-400 ${outlineButton}`}>
-                  Sí, cancelar
-                </button>
-                <button type="button" onClick={() => setConfirming(false)} className={`${button} ${outlineButton}`}>
-                  No
-                </button>
-              </>
-            ) : (
-              <>
-                <button type="button" onClick={onStart} className={`${button} ${primaryButton}`}>
-                  Empezar a preparar
-                </button>
-                <button type="button" onClick={() => setConfirming(true)} className={`${button} ${outlineButton}`}>
-                  Cancelar
-                </button>
-              </>
-            ))}
+          {order.status === 'new' && (
+            <>
+              <button type="button" onClick={onStart} className={`${button} ${primaryButton}`}>
+                Empezar a preparar
+              </button>
+              <button type="button" onClick={() => setConfirming(true)} className={`${button} ${dangerButton}`}>
+                Cancelar
+              </button>
+            </>
+          )}
           {order.status === 'preparing' && (
             <button type="button" onClick={onReady} className={`${button} ${primaryButton}`}>
               Marcar listo
@@ -109,6 +103,20 @@ export function KitchenOrderCard({ order, now, onStart, onReady, onDeliver, onCa
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {openDetail && <OrderDetailDialog order={order} late={late} onClose={() => setOpenDetail(false)} />}
+        {confirming && (
+          <CancelOrderDialog
+            orderId={order.id}
+            onConfirm={() => {
+              setConfirming(false)
+              onCancel()
+            }}
+            onClose={() => setConfirming(false)}
+          />
+        )}
+      </AnimatePresence>
     </article>
   )
 }
