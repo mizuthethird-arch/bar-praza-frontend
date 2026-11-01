@@ -411,6 +411,22 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     errors: ['404 unknown invitation'],
   },
   {
+    id: 'resend-invitation',
+    area: 'Team',
+    method: 'POST',
+    path: '/team/invitations/{id}/resend',
+    status: 'proposed',
+    frontend: 'mock',
+    screen: 'Personal y ajustes: Reenviar',
+    summary: 'Sends the same invitation again, with 7 new days.',
+    response: 'TeamState (with invitations)',
+    rules: [
+      'The expiry becomes 7 days from the day it is resent (D-2); an expired invitation works again.',
+      'Refused when the same email already has another invitation still in its days.',
+    ],
+    errors: ['404 unknown invitation', '409 the email already has a live invitation'],
+  },
+  {
     id: 'set-member-active',
     area: 'Team',
     method: 'PATCH',

@@ -9,6 +9,8 @@ export const inviteMemberTo = (team: TeamRepository, invite: { email: string; ro
 
 export const cancelInvitationIn = (team: TeamRepository, id: string) => team.cancelInvitation(id)
 
+export const resendInvitationIn = (team: TeamRepository, id: string) => team.resendInvitation(id)
+
 export const setMemberActiveIn = (team: TeamRepository, id: string, active: boolean) =>
   team.setMemberActive(id, active)
 

@@ -78,6 +78,7 @@ export interface TeamRepository {
   get(): Promise<TeamState>
   inviteMember(invite: { email: string; role: InvitableRole }): Promise<TeamState>
   cancelInvitation(id: string): Promise<TeamState>
+  resendInvitation(id: string): Promise<TeamState>
   setMemberActive(id: string, active: boolean): Promise<TeamState>
   removeMember(id: string): Promise<TeamState>
   saveSettings(settings: BarSettings): Promise<TeamState>

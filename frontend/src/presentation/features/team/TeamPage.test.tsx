@@ -59,6 +59,31 @@ describe('TeamPage', () => {
     await waitFor(() => expect(screen.queryByText('brais@bar.es')).not.toBeInTheDocument())
   })
 
+  it('resends a pending invitation, and it keeps its row', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.type(await screen.findByLabelText('Email'), 'brais@bar.es')
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }))
+    await screen.findByText('brais@bar.es')
+
+    await user.click(screen.getByRole('button', { name: 'Reenviar invitación a brais@bar.es' }))
+
+    expect(await screen.findByText('brais@bar.es')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('tells the user the invitation will be sent, in a notice at the top', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.type(await screen.findByLabelText('Email'), 'brais@bar.es')
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }))
+    await screen.findByText('brais@bar.es')
+
+    await user.click(screen.getByRole('button', { name: 'Reenviar invitación a brais@bar.es' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Se enviará la invitación a brais@bar.es')
+  })
+
   it('offers only kitchen and bar, never the owner', async () => {
     renderApp('/ajustes')
 
