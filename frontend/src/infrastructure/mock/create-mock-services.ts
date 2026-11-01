@@ -35,11 +35,13 @@ type Options = {
   auth: AuthGateway
   // The PIN unlock. Left out when there is no PIN for this build.
   pin?: PinGateway
+  // Where the kitchen board is kept, so every open tab sees the same board. The demo build passes localStorage.
+  kitchenStorage?: Pick<Storage, 'getItem' | 'setItem'>
 }
 
 // The read side is still mock data, with no accounts and no login. The login and the PIN come in as
 // arguments, so a production build never includes the demo accounts (ISS-13).
-export function createMockServices({ auth, pin }: Options): AppServices {
+export function createMockServices({ auth, pin, kitchenStorage }: Options): AppServices {
   const orders = createMockOrdersRepository()
   const menu = createMockMenuRepository()
   const schedule = createMockScheduleRepository()
@@ -50,7 +52,7 @@ export function createMockServices({ auth, pin }: Options): AppServices {
   const reports = createMockReportsRepository()
   const team = createMockTeamRepository()
   const live = createMockLiveEventsRepository()
-  const kitchen = createMockKitchenRepository()
+  const kitchen = createMockKitchenRepository({ storage: kitchenStorage })
 
   return {
     login: (credentials) => login(auth, credentials),
@@ -88,6 +90,7 @@ export function createMockServices({ auth, pin }: Options): AppServices {
     deliverKitchenOrder: (id) => deliverKitchenOrderIn(kitchen, id),
     cancelKitchenOrder: (id) => cancelKitchenOrderIn(kitchen, id),
     closeKitchenShift: () => closeKitchenShiftIn(kitchen),
+    testKitchen: { createOrder: () => kitchen.createTestOrder(), reset: () => kitchen.reset() },
     listLiveEvents: () => listLiveEvents(live),
     pollLiveEvents: (afterId) => pollLiveEvents(live, afterId),
   }

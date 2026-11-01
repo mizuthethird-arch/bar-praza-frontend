@@ -1,14 +1,22 @@
 import { useState } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { shiftTotal, type DeliveredOrder } from '../../../domain/kitchen/kitchen'
 import { formatEuros } from '../../format/money'
+import { sortDelivered, type DeliverySort } from '../../../domain/kitchen/sort'
 import { DeliveryDetailDialog } from './DeliveryDetailDialog'
 import { Column, EmptyColumn } from './KitchenColumn'
+import { SortControl } from './SortControl'
 
 // A small green card: number, name, time and price. Tapping it opens the details.
 function DeliveredCard({ order, onOpen }: { order: DeliveredOrder; onOpen: () => void }) {
   return (
-    <button
+    <motion.button
+      layout
+      layoutId={`order-${order.id}`}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
       type="button"
       aria-haspopup="dialog"
       onClick={onOpen}
@@ -22,26 +30,52 @@ function DeliveredCard({ order, onOpen }: { order: DeliveredOrder; onOpen: () =>
         <span className="text-xs text-emerald-300">{`Entregado ${order.deliveredAt}`}</span>
       </span>
       <span className="shrink-0 font-semibold">{formatEuros(order.totalCents)}</span>
-    </button>
+    </motion.button>
   )
 }
 
-// Orders handed over and paid in the current shift, newest first, with the shift total below.
-export function DeliveryHistory({ delivered }: { delivered: DeliveredOrder[] }) {
+// Orders handed over and paid in the current shift, in the order chosen, with the shift total below.
+export function DeliveryHistory({
+  delivered,
+  now,
+  sort,
+  onSort,
+}: {
+  delivered: DeliveredOrder[]
+  now: string
+  sort: DeliverySort
+  onSort: (sort: DeliverySort) => void
+}) {
   const [openId, setOpenId] = useState<string | null>(null)
   const opened = delivered.find((order) => order.id === openId)
+  const shown = sortDelivered(delivered, sort, now)
 
   return (
     <Column
       title="Entregados y cobrados"
       count={delivered.length || undefined}
-      className="md:col-span-2 2xl:col-span-1 2xl:sticky 2xl:top-6"
+      className="xl:sticky xl:top-6"
+      controls={
+        <SortControl
+          column="entregados"
+          options={[
+            { value: 'delivery', label: 'Entrega' },
+            { value: 'amount', label: 'Importe' },
+          ]}
+          value={sort}
+          onChange={onSort}
+        />
+      }
     >
-      {delivered.length === 0 ? (
-        <EmptyColumn text="Todavía no se ha entregado ningún pedido en este turno." />
-      ) : (
-        delivered.map((order) => <DeliveredCard key={order.id} order={order} onOpen={() => setOpenId(order.id)} />)
-      )}
+      {/* Six cards fit; any more scroll inside this box, so the total below always stays in view. */}
+      <div role="group" aria-label="Entregados" className="max-h-[30rem] space-y-4 overflow-y-auto pr-1">
+        <AnimatePresence initial={false}>
+          {shown.map((order) => (
+            <DeliveredCard key={order.id} order={order} onOpen={() => setOpenId(order.id)} />
+          ))}
+        </AnimatePresence>
+        {delivered.length === 0 && <EmptyColumn text="Todavía no se ha entregado ningún pedido en este turno." />}
+      </div>
 
       <div className="rounded-xl border border-emerald-900 bg-emerald-950/40 p-5">
         <p className="text-sm text-neutral-400">Total cobrado</p>

@@ -24,6 +24,11 @@ export interface AppServices {
   hasSession(): Promise<boolean>
   // Only where the backend has the PIN unlock. Without it the PIN button and /login/pin are not shown.
   pinUnlock?: PinUnlockServices
+  // Only in the demo build: test orders for the kitchen board, to try the sound (/crear-pedido-prueba).
+  testKitchen?: {
+    createOrder(): Promise<KitchenBoard>
+    reset(): Promise<KitchenBoard>
+  }
   getDashboard(): Promise<Dashboard>
   getScheduleOverview(): Promise<ScheduleOverview>
   pauseOrders(minutes: number): Promise<ScheduleOverview>

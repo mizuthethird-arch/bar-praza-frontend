@@ -21,7 +21,7 @@ const demo = import.meta.env.VITE_DEMO_MODE === 'true' || (import.meta.env.DEV &
 async function buildServices(): Promise<AppServices | null> {
   if (demo) {
     const { createDemoServices } = await import('./infrastructure/mock/demo-services')
-    return createDemoServices({ storage: window.sessionStorage })
+    return createDemoServices({ storage: window.sessionStorage, kitchenStorage: window.localStorage })
   }
   if (!apiUrl) return null
   return createMockServices({
