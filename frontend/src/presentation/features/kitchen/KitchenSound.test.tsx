@@ -1,5 +1,6 @@
 import { act, fireEvent, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { KitchenBoard, KitchenOrder } from '../../../domain/kitchen/kitchen'
 import { createDemoServices } from '../../../infrastructure/mock/demo-services'
 import { renderApp } from '../../../test/render-app'
 import { playChime, unlockSound } from './chime'
@@ -8,19 +9,27 @@ import { playChime, unlockSound } from './chime'
 // unlockSound reports whether the browser has now let the page make sound.
 vi.mock('./chime', () => ({ playChime: vi.fn(() => false), unlockSound: vi.fn(() => Promise.resolve(false)) }))
 
-// The board as the first poll sees it, then the same board with one new order from another device.
-async function pollsWithNewOrder() {
-  const demo = createDemoServices({ loginDelayMs: 0, signedIn: true })
-  const first = await demo.getKitchenBoard()
-  const arrived = {
-    ...first,
-    orders: [
-      ...first.orders,
-      { id: '#50', customer: 'Noa', pickupTime: '21:40', status: 'new' as const, phone: '600 000 050', totalCents: 500, lines: [{ quantity: 1, name: 'Agua', variant: '' }] },
-    ],
+// The board's watch in a test: the page keeps the handler, and the test sends a board through it as the server would.
+function boardFeed() {
+  let send: (board: KitchenBoard) => void = () => {}
+  return {
+    send: (board: KitchenBoard) => send(board),
+    watchKitchenBoard: (onBoard: (board: KitchenBoard) => void) => {
+      send = onBoard
+      return () => {}
+    },
   }
-  let polls = 0
-  return async () => (++polls === 1 ? first : arrived)
+}
+
+const order = (id: string): KitchenOrder => ({
+  id, customer: 'Noa', pickupTime: '21:40', status: 'new', phone: '600 000 050', totalCents: 500,
+  lines: [{ quantity: 1, name: 'Agua', variant: '' }],
+})
+
+// The board as it is now, and the same board with one new order from another device.
+async function boardAndNewOrder() {
+  const now = await createDemoServices({ loginDelayMs: 0, signedIn: true }).getKitchenBoard()
+  return { now, arrived: { ...now, orders: [...now.orders, order('#50')] } }
 }
 
 describe('kitchen sound when the browser holds it back', () => {
@@ -33,50 +42,38 @@ describe('kitchen sound when the browser holds it back', () => {
   afterEach(() => vi.useRealTimers())
 
   it('asks for a press when a new order chimes before the page was pressed', async () => {
-    renderApp('/cocina', { getKitchenBoard: await pollsWithNewOrder() })
+    const { now, arrived } = await boardAndNewOrder()
+    const feed = boardFeed()
+    renderApp('/cocina', { getKitchenBoard: async () => now, watchKitchenBoard: feed.watchKitchenBoard })
     await screen.findByRole('heading', { level: 1, name: 'Pedidos de cocina' })
+    await act(() => Promise.resolve())
 
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    act(() => feed.send(arrived))
 
     expect(playChime).toHaveBeenCalledTimes(1)
     expect(await screen.findByRole('button', { name: 'Toca para activar el sonido' })).toBeInTheDocument()
   })
 
-  it('chimes once for each order that arrives in the same refresh', async () => {
-    const demo = createDemoServices({ loginDelayMs: 0, signedIn: true })
-    const first = await demo.getKitchenBoard()
-    const order = (id: string) => ({ id, customer: 'Noa', pickupTime: '21:40', status: 'new' as const, phone: '600 000 050', totalCents: 500, lines: [{ quantity: 1, name: 'Agua', variant: '' }] })
-    const burst = { ...first, orders: [...first.orders, order('#51'), order('#52'), order('#53')] }
-    let polls = 0
-    renderApp('/cocina', { getKitchenBoard: async () => (++polls === 1 ? first : burst) })
+  it('chimes once for each order that arrives in the same change', async () => {
+    const { now } = await boardAndNewOrder()
+    const feed = boardFeed()
+    renderApp('/cocina', { getKitchenBoard: async () => now, watchKitchenBoard: feed.watchKitchenBoard })
     await screen.findByRole('heading', { level: 1, name: 'Pedidos de cocina' })
+    await act(() => Promise.resolve())
 
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    act(() => feed.send({ ...now, orders: [...now.orders, order('#51'), order('#52'), order('#53')] }))
 
     expect(playChime).toHaveBeenCalledWith(3)
   })
 
-  it('chimes at once when another tab of the demo build changes the board, without waiting for the refresh', async () => {
-    const demo = createDemoServices({ loginDelayMs: 0, signedIn: true })
-    const first = await demo.getKitchenBoard()
-    const order = (id: string) => ({ id, customer: 'Noa', pickupTime: '21:40', status: 'new' as const, phone: '600 000 050', totalCents: 500, lines: [{ quantity: 1, name: 'Agua', variant: '' }] })
-    const changed = { ...first, orders: [...first.orders, order('#60'), order('#61')] }
-    renderApp('/cocina', { getKitchenBoard: async () => first })
-    await screen.findByRole('heading', { level: 1, name: 'Pedidos de cocina' })
-    await act(() => Promise.resolve())
-
-    act(() => {
-      window.dispatchEvent(new StorageEvent('storage', { key: 'barpraza.kitchenBoard', newValue: JSON.stringify(changed) }))
-    })
-
-    expect(playChime).toHaveBeenCalledWith(2)
-  })
-
   it('becomes active on a press when the browser then lets the page make sound', async () => {
     vi.mocked(unlockSound).mockImplementation(() => Promise.resolve(true))
-    renderApp('/cocina', { getKitchenBoard: await pollsWithNewOrder() })
+    const { now, arrived } = await boardAndNewOrder()
+    const feed = boardFeed()
+    renderApp('/cocina', { getKitchenBoard: async () => now, watchKitchenBoard: feed.watchKitchenBoard })
     await screen.findByRole('heading', { level: 1, name: 'Pedidos de cocina' })
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    await act(() => Promise.resolve())
+    act(() => feed.send(arrived))
     await screen.findByRole('button', { name: 'Toca para activar el sonido' })
 
     fireEvent.pointerDown(document.body)
@@ -87,9 +84,12 @@ describe('kitchen sound when the browser holds it back', () => {
 
   it('turns the sound on with a press on the waiting button, and does not switch it off again', async () => {
     vi.mocked(unlockSound).mockImplementation(() => Promise.resolve(true))
-    renderApp('/cocina', { getKitchenBoard: await pollsWithNewOrder() })
+    const { now, arrived } = await boardAndNewOrder()
+    const feed = boardFeed()
+    renderApp('/cocina', { getKitchenBoard: async () => now, watchKitchenBoard: feed.watchKitchenBoard })
     await screen.findByRole('heading', { level: 1, name: 'Pedidos de cocina' })
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    await act(() => Promise.resolve())
+    act(() => feed.send(arrived))
     const waiting = await screen.findByRole('button', { name: 'Toca para activar el sonido' })
 
     // A real press is a pointer-down, then a click on the same button, in separate tasks: the page
@@ -102,9 +102,12 @@ describe('kitchen sound when the browser holds it back', () => {
   })
 
   it('keeps asking for a press when the browser still refuses the sound', async () => {
-    renderApp('/cocina', { getKitchenBoard: await pollsWithNewOrder() })
+    const { now, arrived } = await boardAndNewOrder()
+    const feed = boardFeed()
+    renderApp('/cocina', { getKitchenBoard: async () => now, watchKitchenBoard: feed.watchKitchenBoard })
     await screen.findByRole('heading', { level: 1, name: 'Pedidos de cocina' })
-    await act(() => vi.advanceTimersByTimeAsync(15000))
+    await act(() => Promise.resolve())
+    act(() => feed.send(arrived))
     await screen.findByRole('button', { name: 'Toca para activar el sonido' })
 
     fireEvent.pointerDown(document.body)

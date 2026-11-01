@@ -6,7 +6,7 @@ describe('kitchen use cases', () => {
   it('sends one command per change and returns the new board', async () => {
     const board = { shiftOpenedAt: '19:02', orders: [], delivered: [] }
     const done = vi.fn().mockResolvedValue(board)
-    const repo: KitchenRepository = { getBoard: done, start: done, markReady: done, deliver: done, cancel: done, closeShift: done }
+    const repo: KitchenRepository = { getBoard: done, start: done, markReady: done, deliver: done, cancel: done, closeShift: done, watch: vi.fn() }
 
     expect(await getKitchenBoard(repo)).toBe(board)
     await startKitchenOrderIn(repo, '#1')

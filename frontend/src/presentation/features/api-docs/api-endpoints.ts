@@ -448,7 +448,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     response:
       'KitchenBoard { shiftOpenedAt, shiftClosedAt?, orders: KitchenOrder[], delivered: DeliveredOrder[] } (domain/kitchen/kitchen.ts)',
     rules: [
-      'The screen asks again every 15 seconds, so changes from other devices show up.',
+      'Changes from other devices arrive on the socket (ws-kitchen-board), so this read is the first load only.',
       'Delivered orders are newest first and each carries deliveredAt.',
       '"Late" is not stored; the screen works it out from pickupTime and the clock.',
     ],
@@ -543,12 +543,39 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/live-events?after={id}',
     status: 'proposed',
     frontend: 'mock',
-    screen: 'Consola en vivo (polls every 5 seconds)',
+    screen: 'Consola en vivo (first load)',
     summary: 'The events with an id above the last one the screen has.',
     response: 'LiveEvent[]',
     rules: [
-      'Open: polling every 5 seconds, or a push channel (SSE or WebSocket).',
+      'Changes arrive on the socket (ws-live-events) as they happen.',
     ],
+  },
+  {
+    id: 'ws-kitchen-board',
+    area: 'Live console',
+    method: 'GET',
+    path: 'wss:// /ws  (kitchen.board)',
+    status: 'proposed',
+    frontend: 'real',
+    screen: 'Pedidos de cocina (watches for changes)',
+    summary: 'Pushes the whole kitchen board on connect and after each change, from any device.',
+    response: '{ "type": "kitchen.board", "board": KitchenBoard }',
+    rules: [
+      'Opened only while the board is on screen. Reconnects with a growing wait (1, 2, 5, 10, then 30 seconds).',
+      'The session cookie is sent with the handshake. Route and whether the board is also sent after a reconnect: open.',
+    ],
+  },
+  {
+    id: 'ws-live-events',
+    area: 'Live console',
+    method: 'GET',
+    path: 'wss:// /ws  (live.event)',
+    status: 'proposed',
+    frontend: 'real',
+    screen: 'Consola en vivo (watches for changes)',
+    summary: 'Pushes each live event as it happens.',
+    response: '{ "type": "live.event", "event": LiveEvent }',
+    rules: ['Event ids only grow. Unknown message types are ignored by the frontend.'],
   },
   {
     id: 'reports-weekly',
@@ -567,7 +594,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
 // The client-only behaviour of the frontend: it needs no endpoint. Listed so the backend team
 // knows what is decided in the browser today.
 export const CLIENT_ONLY = [
-  'The kitchen board refreshes every 15 seconds; the live console every 5 seconds.',
+  'The kitchen board and the live console do not poll: they watch the socket, and a change arrives as it happens.',
   'Sound, the chime for each new order, the vibration and the shake of the sound button: the browser only.',
   'Column choice on the kitchen board and the delivered sort (Entrega or Importe): the browser only.',
   'Drag order inside Nuevos, En curso and Listos: kept in the tab, lost on a reload. Decide whether the server keeps it.',
@@ -578,7 +605,7 @@ export const CLIENT_ONLY = [
 // Decisions the backend owner and tech lead still have to make (from the contract and the brain).
 export const OPEN_DECISIONS = [
   'One order model for Pedidos and Pedidos de cocina: the same orders appear in both today, in two shapes.',
-  'Live console: polling every 5 seconds (today) or a push channel.',
+  'Real time: the socket message shapes and the socket route are a proposal (frontend/docs/backend-contract.md, section 6).',
   'Invitations or direct add: does addMember send an invitation (D-1)?',
   'Close shift: does the next shift start with an empty history, and can orders still change after the close?',
   'Payment note: who decides "paga al recoger" or "cobrar al entregar".',

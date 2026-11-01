@@ -155,8 +155,8 @@ the login. Open it from "Pedidos de cocina" in the sidebar.
   every open tab shows the same board, as with the backend. Without storage it stays in memory.
 - `/crear-pedido-prueba` (not in the sidebar) makes a test order (#45 onward, "Prueba", 10,00 €,
   picked up in 20 minutes) and tries the sound. "Borrar pedidos de prueba" puts the board back
-  to its first state. The kitchen board picks up new orders on its 15-second refresh, so a new
-  order chimes within 15 seconds in any open tab.
+  to its first state. The board learns of each change as it happens: in the same tab straight
+  away, and in another tab of the browser through the storage event, so a new order chimes at once.
 
 - Pickup times are set **relative to the moment the page loads**, so the board always looks like
   the design: two new orders ahead of time, one late, one ready. The shift opened 132 minutes ago.
@@ -185,8 +185,8 @@ the login. Open it from "Pedidos de cocina" in the sidebar.
 Try:
 - Empezar a preparar → Marcar listo → Entregado y cobrado: the order moves from Nuevos to En curso, then to Listos, then into the history column.
 - Cancelar asks "Sí, cancelar" / "No" first. Only new orders can be cancelled.
-- The board refreshes every 15 s; a new order from another device plays a chime if "Sonido activo"
-  is on. The clock and the "en N min" countdown move every 30 s.
+- A new order from another device plays a chime if "Sonido activo" is on, as it arrives (no refresh).
+  The clock and the "en N min" countdown move every 30 s.
 - "Cerrar turno" is shown but not built yet.
 
 ### Consola en vivo (`/consola`)
@@ -194,9 +194,9 @@ Try:
 From `mock-live-events-repository.ts`: a scripted evening of 8 events.
 
 - 4 events show on load.
-- One more arrives each refresh, every 5 s or with "Actualizar", until all 8 are there.
+- The mock stands in for the server's push: one more arrives every 5 s until all 8 are there.
 - Among them are a delayed order (#42) and a cancellation (#39).
-- "Pausar" stops the refresh.
+- "Pausar" holds new events back; "Reanudar" adds them to the list.
 
 ## Mock files
 

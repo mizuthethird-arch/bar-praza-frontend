@@ -12,7 +12,7 @@ import {
   type KitchenOrder,
 } from '../../domain/kitchen/kitchen'
 import { addMinutes, clockOf } from '../../domain/time/clock'
-import { kitchenStore, type BoardStorage } from './mock-kitchen-store'
+import { KEY, kitchenStore, type BoardStorage } from './mock-kitchen-store'
 
 type Options = {
   now?: () => Date
@@ -98,18 +98,38 @@ function seed(now: Date): KitchenBoard {
 
 export function createMockKitchenRepository({ now = () => new Date(), storage }: Options = {}): MockKitchenRepository {
   const store = kitchenStore(storage, () => seed(now()))
+  const watchers = new Set<(board: KitchenBoard) => void>()
   const change = (apply: (orders: KitchenOrder[]) => KitchenOrder[]) =>
     store.change((board) => ({ ...board, orders: apply(board.orders) }))
+  // Every change made in this tab goes to the watchers once it is saved.
+  const announce = (next: Promise<KitchenBoard>) =>
+    next.then((board) => {
+      watchers.forEach((onBoard) => onBoard(board))
+      return board
+    })
 
   return {
     getBoard: store.read,
-    start: (id) => change((orders) => startPreparing(orders, id)),
-    markReady: (id) => change((orders) => markReady(orders, id)),
-    deliver: (id) => store.change((board) => completeDelivery(board, id, clockOf(now()))),
-    cancel: (id) => change((orders) => cancelKitchenOrder(orders, id)),
-    closeShift: () => store.change((board) => closeShift(board, clockOf(now()))),
+    start: (id) => announce(change((orders) => startPreparing(orders, id))),
+    markReady: (id) => announce(change((orders) => markReady(orders, id))),
+    deliver: (id) => announce(store.change((board) => completeDelivery(board, id, clockOf(now())))),
+    cancel: (id) => announce(change((orders) => cancelKitchenOrder(orders, id))),
+    closeShift: () => announce(store.change((board) => closeShift(board, clockOf(now())))),
     createTestOrder: () =>
-      store.change((board) => addOrder(board, testOrder(nextOrderId(board), addMinutes(clockOf(now()), 20)))),
-    reset: () => store.change(() => seed(now())),
+      announce(store.change((board) => addOrder(board, testOrder(nextOrderId(board), addMinutes(clockOf(now()), 20))))),
+    reset: () => announce(store.change(() => seed(now()))),
+    watch: (onBoard) => {
+      watchers.add(onBoard)
+      // Another tab of this browser saved the board. Storage events come only from other tabs, so this
+      // does not hear this tab's own saves.
+      const onStorage = (event: StorageEvent) => {
+        if (event.key === KEY && event.newValue) onBoard(JSON.parse(event.newValue) as KitchenBoard)
+      }
+      window.addEventListener('storage', onStorage)
+      return () => {
+        watchers.delete(onBoard)
+        window.removeEventListener('storage', onStorage)
+      }
+    },
   }
 }

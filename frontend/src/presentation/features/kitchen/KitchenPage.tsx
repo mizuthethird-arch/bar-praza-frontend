@@ -19,10 +19,6 @@ import { ColumnFilter, type ColumnKey } from './ColumnFilter'
 import { KitchenOrderCard } from './KitchenOrderCard'
 import { SoundToggle } from './SoundToggle'
 
-const REFRESH_MS = 15000
-// The storage key of the demo board. Same value as in infrastructure/mock/mock-kitchen-store.ts.
-const DEMO_BOARD_KEY = 'barpraza.kitchenBoard'
-
 // The grid for each number of columns shown, from 1280 px up. The class names are written out in full
 // so Tailwind keeps them.
 const GRID_BY_COUNT = ['', 'xl:grid-cols-1', 'xl:grid-cols-2', 'xl:grid-cols-3', 'xl:grid-cols-4'] as const
@@ -127,29 +123,8 @@ function Board({ initial }: { initial: KitchenBoard }) {
     }
   }, [])
 
-  // The demo board is kept in browser storage, which tells every other tab of the page when it changes:
-  // a test order made in another tab shows and chimes at once, not on the next refresh.
-  useEffect(() => {
-    const onStorage = (event: StorageEvent) => {
-      if (event.key !== DEMO_BOARD_KEY || !event.newValue) return
-      show(JSON.parse(event.newValue) as KitchenBoard)
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [show])
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      services.getKitchenBoard().then(
-        (next) => {
-          show(next)
-          setError(null)
-        },
-        () => setError('No se pudo actualizar'),
-      )
-    }, REFRESH_MS)
-    return () => window.clearInterval(timer)
-  }, [services, show])
+  // Changes from any device arrive as they happen, so the board does not poll.
+  useEffect(() => services.watchKitchenBoard((next) => show(next)), [services, show])
 
   async function closeShift() {
     setConfirming(false)

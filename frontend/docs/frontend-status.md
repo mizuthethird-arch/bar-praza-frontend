@@ -30,8 +30,8 @@ Nothing is role-based yet: owner, kitchen and bar accounts all see the same page
 | Informes | `/informes` | Weekly report, orders-per-day chart, CSV export. |
 | Horario y pedidos | `/horario` | Pause and resume orders (15, 30, 60 min), add and remove closures. Weekly hours and order rules are display only. |
 | Personal y ajustes | `/ajustes` | Add, activate or deactivate, remove staff; last active owner protected; bar settings save. |
-| Pedidos de cocina | `/cocina` | Four columns (Nuevos, En curso, Listos, Entregados y cobrados), start, ready, deliver, cancel with confirmation, delivery history with detail pop-up, sold-out list, sound toggle, 15 s refresh. |
-| Consola en vivo | `/consola` | Scripted live events, refresh every 5 s or with "Actualizar", pause. |
+| Pedidos de cocina | `/cocina` | Four columns (Nuevos, En curso, Listos, Entregados y cobrados), start, ready, deliver, cancel with confirmation, delivery history with detail pop-up, sold-out list, sound toggle, changes arrive as they happen (no refresh). |
+| Consola en vivo | `/consola` | Scripted live events, arriving as they happen (mock push), pause. |
 
 Cross-cutting:
 - Sidebar navigation with active state; secondary items for kitchen and live console.
