@@ -161,14 +161,25 @@ The board duplicates the order log (Pedidos): see open question 1 below.
 
 | Command | Proposed route | Input | Returns | Server rules |
 |---|---|---|---|---|
-| `addMember` | `POST /team/members` | `{ name, role: 'owner' \| 'kitchen' \| 'bar' }` | `TeamState` | Name required. The server assigns the id. |
-| `setMemberActive` | `PATCH /team/members/{id}` | `{ active }` | `TeamState` | At least one active owner must remain. |
-| `removeMember` | `DELETE /team/members/{id}` | member id | `TeamState` | At least one active owner must remain. |
+| `inviteMember` | `POST /team/invitations` | `{ email, role: 'kitchen' \| 'bar' }` | `TeamState` (with `invitations`) | Email must be a valid address (stored lowercase). Role is kitchen or bar only: an owner cannot be invited (D-1, SCH-3). An email with a live invitation (not yet expired) cannot get a second one. The invitation expires 7 days after it is sent (D-2) and works once (D-3). The server assigns the id. |
+| `cancelInvitation` | `DELETE /team/invitations/{id}` | invitation id | `TeamState` | Only a pending invitation can be cancelled; its link stops working at once. Unknown id is an error. |
+| `resendInvitation` | `POST /team/invitations/{id}/resend` | invitation id | `TeamState` | Sends the same invitation again: the expiry becomes 7 days from the day it is resent (D-2). Refused when the same email has another invitation still in its days. Unknown id is an error. |
+| `setMemberActive` | `PATCH /team/members/{id}` | `{ active }` | `TeamState` | Deactivates or reactivates a member. Deactivating keeps their history. At least one active owner must remain. |
+| `removeMember` | `DELETE /team/members/{id}` | member id | `TeamState` | Deletes a member. Only offered from the edit pop-up, after a confirmation. At least one active owner must remain. Unknown id is an error. |
+| `sendPasswordReset` | `POST /team/members/{id}/password-reset` (not built yet) | member id | nothing (204) | Sends the member an email with a link to choose a new password. The link works once and expires; the lifetime is the backend's to set (open question 7). Refused for a deactivated member. Unknown id is an error. The frontend shows the email it was sent to. |
+| `listDevices` | `GET /team/members/{id}/devices` (not built yet) | member id | `StaffDevice[]` | The devices that remember the member: the active ones first, then the history (disconnected or expired). Each has `name`, `rememberedOn`, `lastUsed`, `status`, `endedOn`. |
+| `disconnectDevice` | `DELETE /team/members/{id}/devices/{deviceId}` (not built yet) | member id, device id | `StaffDevice[]` for the member | Disconnects an active device: the next visit from it asks for the password again. A device that is not active, or belongs to another member, is an error. Owner only. |
+| `setMemberPin` | `PUT /team/members/{id}/pin` (not built yet) | `{ pin }`, exactly 4 digits | `TeamState` | Sets or changes a member's PIN. The server stores it hashed and never returns it; `pinSet` turns true. Owner only. Unknown id is an error. Open question 6 covers how the PIN is kept and when the lock lasts. |
+| `updateMember` | `PATCH /team/members/{id}` (same endpoint as `setMemberActive`, partial body) | `{ name?, role?: 'kitchen' \| 'bar' }` | `TeamState` | Changes a member's name (trimmed, not blank) and role. The owner's role is fixed, and nobody can become the owner (D-1, SCH-3). Unknown id is an error. |
 | `saveSettings` | `PUT /team/settings` | `BarSettings` | `TeamState` | `barName` required and trimmed. |
 
-Note: D-1 says staff join through an invitation link (WP-1.2, WP-1.3). The current
-`addMember` screen adds a member directly. How the two fit (does `addMember` send an
-invitation?) is open, for the user and the tech lead.
+`getTeam` returns each member with `email` (where recovery links are sent), `pinSet` (whether a PIN is set), `lastAccess` (`YYYY-MM-DD HH:mm` or null) and
+`device` (the tablet the PIN is kept on, or null). The team list shows one row per member (status: active or
+deactivated) and one row per pending invitation (status: invited, with its expiry date).
+
+Note: staff join through an invitation link (D-1, WP-1.2, WP-1.3). The frontend no longer adds a
+member directly: "Enviar invitación" sends an invitation. Accepting it (the link, the password the
+person sets, and the member being created) belongs to the backend and is not in this contract yet.
 
 ## 5. Open questions for the backend owner and tech lead
 
@@ -178,9 +189,11 @@ invitation?) is open, for the user and the tech lead.
 2. Real time: the frontend expects a push channel (section 6), not polling. The backend confirms the
    transport (WebSocket, as proposed, or server-sent events) and the message shapes.
 3. Session transport and length (ISS-4), and the response for an expired session.
-4. Invitations versus `addMember` (see the note under Team).
+4. Invitation acceptance: the link, how the token travels, and when the member is created (see the note under Team).
 5. Routes, versioning and error body format: the tech lead decides. The proposal in this
    document is only a starting point.
+8. Remembered devices: how long a device stays remembered (the login says "Recordar este dispositivo 30 días"), what counts as its last use, and whether the device name is the one the person chose or one the system gives. `member.device` (the PIN tablet) is kept apart from this list.
+7. Password recovery: the link's lifetime (how long it works), whether it works once, and what the person sees after the new password is set. The frontend sends it from the owner's pop-up only; the self-service "¿Olvidaste la contraseña?" link on the login page is a separate flow and is still a placeholder.
 6. PIN unlock: how the PIN is set and stored per person, how a device is remembered, and how long
    the lock lasts (and who can clear it before that).
 

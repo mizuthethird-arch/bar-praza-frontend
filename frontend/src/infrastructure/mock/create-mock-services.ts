@@ -5,7 +5,20 @@ import { getScheduleOverview } from '../../application/get-schedule-overview'
 import { isSignedIn, login, logout } from '../../application/login'
 import { getRememberedDevice, unlockWithPin } from '../../application/pin-unlock'
 import { cancelOrderIn, listOrderLog } from '../../application/order-log'
-import { addMemberTo, getTeam, removeMemberFrom, saveSettingsIn, setMemberActiveIn } from '../../application/manage-team'
+import {
+  cancelInvitationIn,
+  getTeam,
+  inviteMemberTo,
+  resendInvitationIn,
+  updateMemberIn,
+  saveSettingsIn,
+  setMemberActiveIn,
+  removeMemberFrom,
+  sendPasswordResetIn,
+  setMemberPinIn,
+  listDevicesOf,
+  disconnectDeviceIn,
+} from '../../application/manage-team'
 import {
   cancelKitchenOrderIn,
   closeKitchenShiftIn,
@@ -83,9 +96,16 @@ export function createMockServices({ auth, pin, kitchenStorage, realtime }: Opti
     listCustomers: () => customers.list(),
     getReport: () => reports.getWeekly(),
     getTeam: () => getTeam(team),
-    addMember: (member) => addMemberTo(team, member),
+    inviteMember: (invite) => inviteMemberTo(team, invite),
+    cancelInvitation: (id) => cancelInvitationIn(team, id),
+    resendInvitation: (id) => resendInvitationIn(team, id),
+    updateMember: (id, changes) => updateMemberIn(team, id, changes),
     setMemberActive: (id, active) => setMemberActiveIn(team, id, active),
+    setMemberPin: (id, pin) => setMemberPinIn(team, id, pin),
     removeMember: (id) => removeMemberFrom(team, id),
+    sendPasswordReset: (id) => sendPasswordResetIn(team, id),
+    listDevices: (memberId) => listDevicesOf(team, memberId),
+    disconnectDevice: (memberId, deviceId) => disconnectDeviceIn(team, memberId, deviceId),
     saveSettings: (settings) => saveSettingsIn(team, settings),
     getKitchenBoard: () => getKitchenBoard(kitchen),
     watchKitchenBoard: (onBoard) => (realtime ? realtime.watchKitchenBoard(onBoard) : watchKitchenBoardIn(kitchen, onBoard)),

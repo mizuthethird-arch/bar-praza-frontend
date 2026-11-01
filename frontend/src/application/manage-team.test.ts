@@ -1,37 +1,77 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { BarSettings } from '../domain/team/team'
-import { addMemberTo, removeMemberFrom, saveSettingsIn, setMemberActiveIn } from './manage-team'
 import type { TeamRepository } from './ports'
+import {
+  disconnectDeviceIn,
+  inviteMemberTo,
+  listDevicesOf,
+  removeMemberFrom,
+  saveSettingsIn,
+  sendPasswordResetIn,
+  setMemberActiveIn,
+  setMemberPinIn,
+} from './manage-team'
 
-const settings: BarSettings = { barName: ' Bar Praza ', phone: '', address: '', notifyNewOrders: true, notifyDelays: true }
-
-function repo(): TeamRepository {
-  const done = vi.fn().mockResolvedValue({})
-  return { get: vi.fn(), addMember: done, setMemberActive: done, removeMember: done, saveSettings: done }
+const repo = (): TeamRepository => {
+  const done = vi.fn().mockResolvedValue({ members: [], invitations: [], settings: {} })
+  return { get: vi.fn(), inviteMember: done, setMemberActive: done, setMemberPin: done, removeMember: done, sendPasswordReset: done, listDevices: done, disconnectDevice: done, saveSettings: done } as unknown as TeamRepository
 }
 
 describe('team use cases', () => {
-  it('sends one change at a time', async () => {
+  it('sends the invitation to the repository, unchanged', async () => {
     const team = repo()
 
-    await addMemberTo(team, { name: ' Uxía ', role: 'kitchen' })
-    await setMemberActiveIn(team, 'm2', false)
+    await inviteMemberTo(team, { email: 'a@b.es', role: 'kitchen' })
+
+    expect(team.inviteMember).toHaveBeenCalledWith({ email: 'a@b.es', role: 'kitchen' })
+  })
+
+  it('lists and disconnects devices through the repository', async () => {
+    const team = repo()
+
+    await listDevicesOf(team, 'm2')
+    await disconnectDeviceIn(team, 'm2', 'd1')
+
+    expect(team.listDevices).toHaveBeenCalledWith('m2')
+    expect(team.disconnectDevice).toHaveBeenCalledWith('m2', 'd1')
+  })
+
+  it('sends a password recovery link through the repository', async () => {
+    const team = repo()
+
+    await sendPasswordResetIn(team, 'm2')
+
+    expect(team.sendPasswordReset).toHaveBeenCalledWith('m2')
+  })
+
+  it('deletes a member through the repository', async () => {
+    const team = repo()
+
     await removeMemberFrom(team, 'm2')
 
-    expect(team.addMember).toHaveBeenCalledWith({ name: 'Uxía', role: 'kitchen' })
-    expect(team.setMemberActive).toHaveBeenCalledWith('m2', false)
     expect(team.removeMember).toHaveBeenCalledWith('m2')
   })
 
-  it('refuses a member without a name', async () => {
+  it('sets a PIN through the repository, unchanged', async () => {
     const team = repo()
 
-    await expect(addMemberTo(team, { name: ' ', role: 'bar' })).rejects.toThrow()
-    expect(team.addMember).not.toHaveBeenCalled()
+    await setMemberPinIn(team, 'm2', '1234')
+
+    expect(team.setMemberPin).toHaveBeenCalledWith('m2', '1234')
   })
 
-  it('sends trimmed settings but needs a bar name', async () => {
+  it('deactivates and reactivates members through the repository', async () => {
     const team = repo()
+
+    await setMemberActiveIn(team, 'm2', false)
+    await setMemberActiveIn(team, 'm2', true)
+
+    expect(team.setMemberActive).toHaveBeenNthCalledWith(1, 'm2', false)
+    expect(team.setMemberActive).toHaveBeenNthCalledWith(2, 'm2', true)
+  })
+
+  it('sends trimmed settings, and refuses a blank bar name', async () => {
+    const team = repo()
+    const settings = { barName: ' Bar Praza ', phone: '', address: '', notifyNewOrders: true, notifyDelays: true }
 
     await saveSettingsIn(team, settings)
     expect(team.saveSettings).toHaveBeenCalledWith({ ...settings, barName: 'Bar Praza' })

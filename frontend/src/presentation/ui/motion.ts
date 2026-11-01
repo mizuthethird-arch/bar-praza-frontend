@@ -12,6 +12,19 @@ const fadeUp: Variants = {
 
 const still: Variants = { hidden: {}, show: {} }
 
+// A row in a list: it rises in when it is added, and fades out when it is removed.
+const rowIn: Variants = {
+  hidden: { opacity: 0, y: -6 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+  exit: { opacity: 0, transition: { duration: 0.2, ease: 'easeIn' } },
+}
+const rowStill: Variants = { hidden: {}, show: {}, exit: {} }
+
+// Rows added to or removed from a list. Reduced motion shows the change at once.
+export function useRowMotion(): Variants {
+  return useReducedMotion() ? rowStill : rowIn
+}
+
 // Fade-up entrance, switched off when the user asks for reduced motion.
 export function useFadeUp(): Variants {
   return useReducedMotion() ? still : fadeUp

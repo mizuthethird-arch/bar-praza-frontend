@@ -1,40 +1,41 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import { InvitationError, MemberError, type StaffDevice } from '../../../domain/team/team'
 import { renderApp } from '../../../test/render-app'
 
 describe('TeamPage edge cases', () => {
-  it('will not switch off the last active owner', async () => {
+  it('will not deactivate the last active owner', async () => {
     const user = userEvent.setup()
     renderApp('/ajustes')
 
-    const toggle = await screen.findByRole('checkbox', { name: 'Activo [Titular]' })
-    await user.click(toggle)
+    await user.click(await screen.findByRole('button', { name: 'Desactivar [Titular]' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('al menos un titular')
-    expect(toggle).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Desactivar [Titular]' })).toBeInTheDocument()
   })
 
-  it('tells the user when adding a member fails and keeps the name', async () => {
+  it('tells the user when the invitation cannot be sent, and keeps the email', async () => {
     const user = userEvent.setup()
-    renderApp('/ajustes', { addMember: () => Promise.reject(new Error('down')) })
+    renderApp('/ajustes', { inviteMember: () => Promise.reject(new Error('down')) })
 
-    await user.type(await screen.findByLabelText('Nombre del miembro'), 'Brais')
-    await user.click(screen.getByRole('button', { name: 'Añadir' }))
+    await user.type(await screen.findByLabelText('Email'), 'brais@bar.es')
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo añadir')
-    expect(screen.getByLabelText('Nombre del miembro')).toHaveValue('Brais')
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo enviar la invitación')
+    expect(screen.getByLabelText('Email')).toHaveValue('brais@bar.es')
   })
 
-  it('clears the name field after adding', async () => {
+  it('shows the rule message when the email already has a live invitation', async () => {
     const user = userEvent.setup()
-    renderApp('/ajustes')
+    renderApp('/ajustes', {
+      inviteMember: () => Promise.reject(new InvitationError('Ya hay una invitación para ese email')),
+    })
 
-    await user.type(await screen.findByLabelText('Nombre del miembro'), 'Brais')
-    await user.click(screen.getByRole('button', { name: 'Añadir' }))
+    await user.type(await screen.findByLabelText('Email'), 'brais@bar.es')
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }))
 
-    expect(await screen.findByText('Brais')).toBeInTheDocument()
-    expect(screen.getByLabelText('Nombre del miembro')).toHaveValue('')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ya hay una invitación para ese email')
   })
 
   it('tells the user when saving the settings fails', async () => {
@@ -63,5 +64,178 @@ describe('TeamPage edge cases', () => {
     renderApp('/ajustes', { getTeam: () => Promise.reject(new Error('down')) })
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar')
+  })
+
+  it('tells the user when an invitation cannot be resent', async () => {
+    const user = userEvent.setup()
+    const team = {
+      members: [],
+      invitations: [{ id: 'i1', email: 'x@bar.es', role: 'bar' as const, expiresOn: '2026-11-08' }],
+      settings: { barName: 'Bar Praza', phone: '', address: '', notifyNewOrders: true, notifyDelays: true },
+    }
+    renderApp('/ajustes', { getTeam: () => Promise.resolve(team), resendInvitation: () => Promise.reject(new Error('down')) })
+
+    await user.click(await screen.findByRole('button', { name: 'Reenviar invitación a x@bar.es' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo reenviar la invitación')
+  })
+
+  it('will not save a blank name, and says so in the pop-up', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+    await user.clear(within(dialog).getByLabelText('Nombre'))
+
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Indica un nombre')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('tells the user when the change cannot be saved, and keeps the pop-up open', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { updateMember: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo guardar el cambio')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('will not save PINs that do not match, and says so in the pop-up', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Poner PIN de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Poner PIN · [Uxía]' })
+    await user.type(within(dialog).getByLabelText(/PIN nuevo/), '1234')
+    await user.type(within(dialog).getByLabelText('Repite el PIN'), '1235')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar PIN' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Los PIN no coinciden')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('refuses a PIN that is not 4 digits, and keeps the pop-up open', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Poner PIN de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Poner PIN · [Uxía]' })
+    await user.type(within(dialog).getByLabelText(/PIN nuevo/), '123')
+    await user.type(within(dialog).getByLabelText('Repite el PIN'), '123')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar PIN' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('El PIN tiene 4 cifras')
+  })
+
+  it('tells the user when the PIN cannot be saved', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { setMemberPin: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Poner PIN de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Poner PIN · [Uxía]' })
+    await user.type(within(dialog).getByLabelText(/PIN nuevo/), '1234')
+    await user.type(within(dialog).getByLabelText('Repite el PIN'), '1234')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar PIN' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo guardar el PIN')
+  })
+
+  it('will not delete the last active owner, and says so in the pop-up', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Titular]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Titular]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Eliminar miembro' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Sí, eliminar' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('al menos un titular')
+    expect(screen.getByText('[Titular]')).toBeInTheDocument()
+  })
+
+  it('tells the user when the deletion fails, and keeps the pop-up open', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { removeMember: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Editar [Xosé]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Xosé]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Eliminar miembro' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Sí, eliminar' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo eliminar el miembro')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('tells the user when the recovery link cannot be sent, and keeps the pop-up open', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { sendPasswordReset: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Enviar enlace para cambiar la contraseña' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo enviar el enlace')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('tells the user when the devices cannot be loaded', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { listDevices: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Dispositivos de [Uxía]' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron cargar los dispositivos')
+  })
+
+  it('tells the user when a device cannot be disconnected, and keeps it listed', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { disconnectDevice: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Dispositivos de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Dispositivos · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Desconectar Tablet cocina de [Uxía]' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo desconectar el dispositivo')
+    expect(within(dialog).getByRole('button', { name: 'Desconectar Tablet cocina de [Uxía]' })).toBeInTheDocument()
+  })
+
+  it('shows a device that was never used, and one that expired with no end day', async () => {
+    const user = userEvent.setup()
+    const devices: StaffDevice[] = [
+      { id: 'x1', memberId: 'm2', name: 'Tablet nueva', rememberedOn: '2026-10-28', lastUsed: null, status: 'active', endedOn: null },
+      { id: 'x2', memberId: 'm2', name: 'Móvil sin fin', rememberedOn: '2026-09-02', lastUsed: null, status: 'expired', endedOn: null },
+    ]
+    renderApp('/ajustes', { listDevices: () => Promise.resolve(devices) })
+    await user.click(await screen.findByRole('button', { name: 'Dispositivos de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Dispositivos · [Uxía]' })
+
+    expect(within(dialog).getAllByText(/último uso nunca/)).toHaveLength(2)
+    expect(within(dialog).getByText(/Caducado el —/)).toBeInTheDocument()
+  })
+
+  it('shows the rule message when a device is no longer connected', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { disconnectDevice: () => Promise.reject(new MemberError('Ese dispositivo ya no está conectado')) })
+    await user.click(await screen.findByRole('button', { name: 'Dispositivos de [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Dispositivos · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Desconectar Tablet cocina de [Uxía]' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Ese dispositivo ya no está conectado')
+  })
+
+  it('tells the user when the recovery link is refused by the rules', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { sendPasswordReset: () => Promise.reject(new MemberError('Reactiva a la persona antes de enviarle el enlace')) })
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Enviar enlace para cambiar la contraseña' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Reactiva a la persona antes de enviarle el enlace')
   })
 })

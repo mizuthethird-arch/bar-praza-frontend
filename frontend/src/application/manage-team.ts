@@ -1,17 +1,34 @@
-import type { BarSettings, Role } from '../domain/team/team'
+import type { BarSettings, InvitableRole, Role } from '../domain/team/team'
 import type { TeamRepository } from './ports'
 
 export const getTeam = (team: TeamRepository) => team.get()
 
-export async function addMemberTo(team: TeamRepository, { name, role }: { name: string; role: Role }) {
-  if (name.trim() === '') throw new Error('A member needs a name')
-  return team.addMember({ name: name.trim(), role })
-}
+// Sends an invitation by email. The team's rules (role, email, one live invitation per email) are checked there.
+export const inviteMemberTo = (team: TeamRepository, invite: { email: string; role: InvitableRole }) =>
+  team.inviteMember(invite)
+
+export const cancelInvitationIn = (team: TeamRepository, id: string) => team.cancelInvitation(id)
+
+export const resendInvitationIn = (team: TeamRepository, id: string) => team.resendInvitation(id)
 
 export const setMemberActiveIn = (team: TeamRepository, id: string, active: boolean) =>
   team.setMemberActive(id, active)
 
+export const setMemberPinIn = (team: TeamRepository, id: string, pin: string) => team.setMemberPin(id, pin)
+
 export const removeMemberFrom = (team: TeamRepository, id: string) => team.removeMember(id)
+
+// Sends the member a link to choose a new password. The backend sends the email; the link works once.
+export const sendPasswordResetIn = (team: TeamRepository, id: string) => team.sendPasswordReset(id)
+
+// A member's remembered devices, the active ones first. Disconnecting one answers with the member's list again.
+export const listDevicesOf = (team: TeamRepository, memberId: string) => team.listDevices(memberId)
+
+export const disconnectDeviceIn = (team: TeamRepository, memberId: string, deviceId: string) =>
+  team.disconnectDevice(memberId, deviceId)
+
+export const updateMemberIn = (team: TeamRepository, id: string, changes: { name: string; role: Role }) =>
+  team.updateMember(id, changes)
 
 export async function saveSettingsIn(team: TeamRepository, settings: BarSettings) {
   if (settings.barName.trim() === '') throw new Error('The bar needs a name')

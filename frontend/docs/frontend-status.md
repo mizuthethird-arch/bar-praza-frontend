@@ -90,13 +90,13 @@ Found by scanning every button and link in `src/presentation/`. Items marked **d
 | FE-15 | Invitation landing page (set password) | not built | D-1 and D-2: new staff join through an invitation link. This is WP-2.2 and is missing. |
 | FE-16 | Invitation rules on the login page | not built | WP-2.5: no public sign-up link. Confirm the login page has none. |
 | FE-17 | Response to `401` mid-session (back to `/login`) | not built | `docs/backend-contract.md` section 2. Depends on the session decision (ISS-4). |
-| FE-18 | Role-based pages | not built | All three roles see every page (`docs/mock-data.md`). |
+| FE-18 | Role-based pages | not built | All three roles see every page (`docs/mock-data.md`). The roles and permissions card on `/ajustes` (read-only, FE-AJ-10) shows the decided rules; page access and the rest of the matrix are marked "Por decidir" until the permissions decision. |
 | FE-19 | Password rules | not built | Depends on ISS-7. |
 
 ### Ajustes (`/ajustes`)
 | # | Item | State | Note |
 |---|---|---|---|
-| FE-20 | "Añadir" member creates the staff member directly | conflicts with D-1 | With invitations, `addMember` should send an invitation instead. Open question for the user and tech lead (`docs/backend-contract.md`, note under Team). |
+| FE-20 | "Añadir" member creates the staff member directly | **resolved** | Replaced by "Enviar invitación": kitchen or bar by email, 7 days, works once, owner not invitable (D-1, D-2, D-3). Acceptance is the backend's (`docs/backend-contract.md`, Team). |
 
 ### Whole app
 | # | Item | State | Note |
@@ -126,7 +126,6 @@ Open decisions for the user before WP-4 can be sized:
 1. Should "Añadir plato" (FE-4) open the existing product editor or a new screen?
 2. Keep or remove the stock CSV export (FE-14)?
 3. Is "Tomar pedido (móvil)" (FE-7) in MS-2 or a later milestone?
-4. Should `addMember` send an invitation (FE-20)?
 
 ## 5. Notes for the next session
 
