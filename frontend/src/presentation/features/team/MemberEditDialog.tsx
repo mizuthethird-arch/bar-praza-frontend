@@ -9,6 +9,8 @@ type Props = {
   onSave: (changes: { name: string; role: Role }) => Promise<void>
   // Deletes the member once the person has confirmed. It throws when the team's rules refuse it.
   onDelete: () => Promise<void>
+  // Sends the member a link to choose a new password. It throws when the team's rules refuse it.
+  onSendReset: () => Promise<void>
   onClose: () => void
 }
 
@@ -16,7 +18,7 @@ const invitableLabel: Record<Exclude<Role, 'owner'>, string> = { kitchen: 'Cocin
 
 // Edits a staff member's name and role, and can delete the member. Deleting asks first: focus starts on "No",
 // so a stray Enter does not delete anyone.
-export function MemberEditDialog({ member, onSave, onDelete, onClose }: Props) {
+export function MemberEditDialog({ member, onSave, onDelete, onSendReset, onClose }: Props) {
   const titleId = useId()
   const [name, setName] = useState(member.name)
   const [role, setRole] = useState<Role>(member.role)
@@ -28,6 +30,14 @@ export function MemberEditDialog({ member, onSave, onDelete, onClose }: Props) {
       await onSave({ name, role })
     } catch (failure) {
       setError(failure instanceof MemberError ? failure.message : 'No se pudo guardar el cambio')
+    }
+  }
+
+  async function sendReset() {
+    try {
+      await onSendReset()
+    } catch (failure) {
+      setError(failure instanceof MemberError ? failure.message : 'No se pudo enviar el enlace')
     }
   }
 
@@ -77,6 +87,17 @@ export function MemberEditDialog({ member, onSave, onDelete, onClose }: Props) {
             </select>
           </label>
         )}
+
+        <div className="space-y-2 border-t border-neutral-800 pt-4">
+          <p className={fieldLabel}>Contraseña</p>
+          <p className="text-sm text-neutral-300">
+            Se enviará a {member.email} un enlace para elegir una contraseña nueva. El enlace se usa una sola vez.
+          </p>
+          <button type="button" disabled={!member.active} onClick={() => void sendReset()} className={`px-4 py-2 ${outlineButton}`}>
+            Enviar enlace para cambiar la contraseña
+          </button>
+          {!member.active && <p className="text-xs text-neutral-400">Reactiva a la persona para enviarle el enlace.</p>}
+        </div>
 
         <div className="border-t border-neutral-800 pt-4">
           {confirming ? (

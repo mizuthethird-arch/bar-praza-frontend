@@ -111,6 +111,13 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
     setEditingId(null)
   }
 
+  // The pop-up closes so the notice is seen; the notice names the email the link went to.
+  async function sendReset(member: StaffMember) {
+    await services.sendPasswordReset(member.id)
+    setEditingId(null)
+    onNotice(`Enlace enviado a ${member.email}`)
+  }
+
   // Deleting is confirmed inside the edit pop-up. The pop-up keeps itself open with the error when the rules refuse it.
   async function deleteMember(member: StaffMember) {
     onChange(await services.removeMember(member.id))
@@ -259,6 +266,7 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
             member={editing}
             onSave={(changes) => saveEdit(editing.id, changes)}
             onDelete={() => deleteMember(editing)}
+            onSendReset={() => sendReset(editing)}
             onClose={() => setEditingId(null)}
           />
         )}

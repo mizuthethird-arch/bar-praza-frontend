@@ -8,6 +8,8 @@ export type InvitableRole = Exclude<Role, 'owner'>
 export type StaffMember = {
   id: string
   name: string
+  // Where a password recovery link is sent.
+  email: string
   role: Role
   active: boolean
   // Whether the person has set a PIN for the device they use.
@@ -120,6 +122,14 @@ export function setMemberActive(members: StaffMember[], id: string, active: bool
   const next = members.map((member) => (member.id === id ? { ...member, active } : member))
   assertKeepsAnOwner(members, next)
   return next
+}
+
+// The member a password recovery link is sent to. A deactivated member is not sent one: reactivate them first.
+export function passwordResetFor(members: StaffMember[], id: string): StaffMember {
+  const member = members.find((item) => item.id === id)
+  if (!member) throw new MemberError('Ese miembro ya no existe')
+  if (!member.active) throw new MemberError('Reactiva a la persona antes de enviarle el enlace')
+  return member
 }
 
 // Deletes a member. It is only offered from the edit pop-up, after a confirmation. The last active owner stays.

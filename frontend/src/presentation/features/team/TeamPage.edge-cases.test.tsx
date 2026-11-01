@@ -170,4 +170,16 @@ describe('TeamPage edge cases', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo eliminar el miembro')
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
+
+  it('tells the user when the recovery link cannot be sent, and keeps the pop-up open', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes', { sendPasswordReset: () => Promise.reject(new Error('down')) })
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Enviar enlace para cambiar la contraseña' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo enviar el enlace')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
 })

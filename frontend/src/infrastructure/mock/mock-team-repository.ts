@@ -5,6 +5,7 @@ import {
   resendInvitation,
   setMemberActive,
   removeMember,
+  passwordResetFor,
   setMemberPin,
   updateMember,
   type StaffMember,
@@ -15,9 +16,9 @@ import { memoryStore } from './memory-store'
 // Names and contact data are placeholders, not the bar's real ones.
 const initial: TeamState = {
   members: [
-    { id: 'm1', name: '[Titular]', role: 'owner', active: true, pinSet: true, lastAccess: '2026-11-01 21:10', device: 'TABLET BARRA' },
-    { id: 'm2', name: '[Uxía]', role: 'kitchen', active: true, pinSet: false, lastAccess: '2026-11-01 19:02', device: null },
-    { id: 'm3', name: '[Xosé]', role: 'bar', active: false, pinSet: true, lastAccess: '2026-10-30 22:40', device: 'TABLET BARRA' },
+    { id: 'm1', name: '[Titular]', email: 'titular@example.com', role: 'owner', active: true, pinSet: true, lastAccess: '2026-11-01 21:10', device: 'TABLET BARRA' },
+    { id: 'm2', name: '[Uxía]', email: 'uxia@example.com', role: 'kitchen', active: true, pinSet: false, lastAccess: '2026-11-01 19:02', device: null },
+    { id: 'm3', name: '[Xosé]', email: 'xose@example.com', role: 'bar', active: false, pinSet: true, lastAccess: '2026-10-30 22:40', device: 'TABLET BARRA' },
   ],
   invitations: [],
   settings: {
@@ -48,6 +49,9 @@ export function createMockTeamRepository({ now = () => new Date() }: { now?: () 
     setMemberActive: (id, active) => changeMembers((members) => setMemberActive(members, id, active)),
     setMemberPin: (id, pin) => changeMembers((members) => setMemberPin(members, id, pin)),
     removeMember: (id) => changeMembers((members) => removeMember(members, id)),
+    sendPasswordReset: async (id) => {
+      passwordResetFor((await store.read()).members, id)
+    },
     updateMember: (id, changes) => changeMembers((members) => updateMember(members, id, changes)),
     saveSettings: (settings) => store.change((state) => ({ ...state, settings })),
   }

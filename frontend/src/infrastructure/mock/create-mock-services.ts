@@ -14,6 +14,7 @@ import {
   saveSettingsIn,
   setMemberActiveIn,
   removeMemberFrom,
+  sendPasswordResetIn,
   setMemberPinIn,
 } from '../../application/manage-team'
 import {
@@ -100,6 +101,7 @@ export function createMockServices({ auth, pin, kitchenStorage, realtime }: Opti
     setMemberActive: (id, active) => setMemberActiveIn(team, id, active),
     setMemberPin: (id, pin) => setMemberPinIn(team, id, pin),
     removeMember: (id) => removeMemberFrom(team, id),
+    sendPasswordReset: (id) => sendPasswordResetIn(team, id),
     saveSettings: (settings) => saveSettingsIn(team, settings),
     getKitchenBoard: () => getKitchenBoard(kitchen),
     watchKitchenBoard: (onBoard) => (realtime ? realtime.watchKitchenBoard(onBoard) : watchKitchenBoardIn(kitchen, onBoard)),

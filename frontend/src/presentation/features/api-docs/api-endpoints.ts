@@ -440,6 +440,23 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     errors: ['404 unknown member', '409 the last active owner cannot be deleted'],
   },
   {
+    id: 'send-password-reset',
+    area: 'Team',
+    method: 'POST',
+    path: '/team/members/{id}/password-reset',
+    status: 'proposed',
+    frontend: 'mock',
+    screen: 'Personal y ajustes: Editar, then Enviar enlace para cambiar la contraseña',
+    summary: 'Emails the member a link to choose a new password. The owner starts it; the person sets the password.',
+    response: 'No content (204)',
+    rules: [
+      'The email goes to the member email on file.',
+      'Refused for a deactivated member: reactivate them first.',
+      'The link works once and expires; the lifetime is the backend decision (open question 7).',
+    ],
+    errors: ['404 unknown member', '409 the member is deactivated'],
+  },
+  {
     id: 'set-member-pin',
     area: 'Team',
     method: 'PUT',
