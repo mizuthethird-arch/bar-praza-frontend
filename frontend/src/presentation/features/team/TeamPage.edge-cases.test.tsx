@@ -5,15 +5,14 @@ import { InvitationError } from '../../../domain/team/team'
 import { renderApp } from '../../../test/render-app'
 
 describe('TeamPage edge cases', () => {
-  it('will not switch off the last active owner', async () => {
+  it('will not deactivate the last active owner', async () => {
     const user = userEvent.setup()
     renderApp('/ajustes')
 
-    const toggle = await screen.findByRole('checkbox', { name: 'Activo [Titular]' })
-    await user.click(toggle)
+    await user.click(await screen.findByRole('button', { name: 'Desactivar [Titular]' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('al menos un titular')
-    expect(toggle).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Desactivar [Titular]' })).toBeInTheDocument()
   })
 
   it('tells the user when the invitation cannot be sent, and keeps the email', async () => {

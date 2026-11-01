@@ -144,23 +144,30 @@ describe('TeamPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Indica un email válido')
   })
 
-  it('switches a member off and removes another', async () => {
+  it('deactivates a member, and reactivates them later', async () => {
     const user = userEvent.setup()
     renderApp('/ajustes')
 
-    const toggle = await screen.findByRole('checkbox', { name: 'Activo [Uxía]' })
-    await user.click(toggle)
-    expect(toggle).not.toBeChecked()
+    await user.click(await screen.findByRole('button', { name: 'Desactivar [Uxía]' }))
+    const row = (await screen.findByText('[Uxía]')).closest('tr')!
+    expect(within(row).getByText('Desactivado')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Quitar [Xosé]' }))
-    await waitFor(() => expect(screen.queryByText('[Xosé]')).not.toBeInTheDocument())
+    await user.click(within(row).getByRole('button', { name: 'Reactivar [Uxía]' }))
+    expect(await within(row).findByText('Activo', { selector: 'span' })).toBeInTheDocument()
   })
 
-  it('explains why the last owner cannot be removed', async () => {
+  it('never offers to delete a staff member', async () => {
+    renderApp('/ajustes')
+    await screen.findByText('[Titular]')
+
+    expect(screen.queryByRole('button', { name: /Quitar/ })).not.toBeInTheDocument()
+  })
+
+  it('explains why the last owner cannot be deactivated', async () => {
     const user = userEvent.setup()
     renderApp('/ajustes')
 
-    await user.click(await screen.findByRole('button', { name: 'Quitar [Titular]' }))
+    await user.click(await screen.findByRole('button', { name: 'Desactivar [Titular]' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('al menos un titular')
     expect(screen.getByText('[Titular]')).toBeInTheDocument()

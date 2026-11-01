@@ -434,7 +434,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     status: 'proposed',
     frontend: 'mock',
     screen: 'Personal y ajustes',
-    summary: "Changes a staff member: switches them on or off, or edits their name and role.",
+    summary: "Deactivates or reactivates a staff member, or edits their name and role. Staff are never deleted.",
     request: '{ "active"?: boolean, "name"?: string, "role"?: "kitchen" | "bar" }',
     response: 'TeamState',
     rules: [
@@ -443,19 +443,6 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       "The owner's role is fixed; nobody else can become the owner (D-1, SCH-3).",
     ],
     errors: ['400 blank name or invalid role', '404 unknown member', '409 the last active owner cannot be deactivated or the owner role cannot change'],
-  },
-  {
-    id: 'remove-member',
-    area: 'Team',
-    method: 'DELETE',
-    path: '/team/members/{id}',
-    status: 'proposed',
-    frontend: 'mock',
-    screen: 'Personal y ajustes',
-    summary: 'Removes a staff member.',
-    response: 'TeamState',
-    rules: ['At least one active owner must remain.'],
-    errors: ['409 the last active owner cannot be removed'],
   },
   {
     id: 'save-settings',

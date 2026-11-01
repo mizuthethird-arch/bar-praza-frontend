@@ -80,7 +80,6 @@ export interface TeamRepository {
   cancelInvitation(id: string): Promise<TeamState>
   resendInvitation(id: string): Promise<TeamState>
   setMemberActive(id: string, active: boolean): Promise<TeamState>
-  removeMember(id: string): Promise<TeamState>
   updateMember(id: string, changes: { name: string; role: Role }): Promise<TeamState>
   saveSettings(settings: BarSettings): Promise<TeamState>
 }

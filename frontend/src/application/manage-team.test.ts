@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { TeamRepository } from './ports'
-import { inviteMemberTo, removeMemberFrom, saveSettingsIn, setMemberActiveIn } from './manage-team'
+import { inviteMemberTo, saveSettingsIn, setMemberActiveIn } from './manage-team'
 
 const repo = (): TeamRepository => {
   const done = vi.fn().mockResolvedValue({ members: [], invitations: [], settings: {} })
-  return { get: vi.fn(), inviteMember: done, setMemberActive: done, removeMember: done, saveSettings: done } as unknown as TeamRepository
+  return { get: vi.fn(), inviteMember: done, setMemberActive: done, saveSettings: done } as unknown as TeamRepository
 }
 
 describe('team use cases', () => {
@@ -16,14 +16,14 @@ describe('team use cases', () => {
     expect(team.inviteMember).toHaveBeenCalledWith({ email: 'a@b.es', role: 'kitchen' })
   })
 
-  it('switches and removes members through the repository', async () => {
+  it('deactivates and reactivates members through the repository', async () => {
     const team = repo()
 
     await setMemberActiveIn(team, 'm2', false)
-    await removeMemberFrom(team, 'm2')
+    await setMemberActiveIn(team, 'm2', true)
 
-    expect(team.setMemberActive).toHaveBeenCalledWith('m2', false)
-    expect(team.removeMember).toHaveBeenCalledWith('m2')
+    expect(team.setMemberActive).toHaveBeenNthCalledWith(1, 'm2', false)
+    expect(team.setMemberActive).toHaveBeenNthCalledWith(2, 'm2', true)
   })
 
   it('sends trimmed settings, and refuses a blank bar name', async () => {

@@ -139,27 +139,29 @@ function StaffCard({ team, onChange, onNotice }: { team: TeamState; onChange: (s
                 <td className={bodyCell}>{member.lastAccess ? formatAccess(member.lastAccess) : '—'}</td>
                 <td className={bodyCell}>{member.device ?? '—'}</td>
                 <td className={`${bodyCell} whitespace-nowrap text-right`}>
-                  <label className="mr-4 inline-flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      aria-label={`Activo ${member.name}`}
-                      checked={member.active}
-                      onChange={(event) => void run(services.setMemberActive(member.id, event.target.checked), ownerMessage)}
-                      className="size-4 accent-emerald-500"
-                    />
-                    Activo
-                  </label>
                   <button type="button" aria-label={`Editar ${member.name}`} onClick={() => setEditingId(member.id)} className={`${textButton} mr-4`}>
                     Editar
                   </button>
-                  <button
-                    type="button"
-                    aria-label={`Quitar ${member.name}`}
-                    onClick={() => void run(services.removeMember(member.id), ownerMessage)}
-                    className={textButton}
-                  >
-                    Quitar
-                  </button>
+                  {/* Staff are never deleted: a member who leaves is deactivated, and can be reactivated. */}
+                  {member.active ? (
+                    <button
+                      type="button"
+                      aria-label={`Desactivar ${member.name}`}
+                      onClick={() => void run(services.setMemberActive(member.id, false), ownerMessage)}
+                      className={textButton}
+                    >
+                      Desactivar
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      aria-label={`Reactivar ${member.name}`}
+                      onClick={() => void run(services.setMemberActive(member.id, true), ownerMessage)}
+                      className={textButton}
+                    >
+                      Reactivar
+                    </button>
+                  )}
                 </td>
               </motion.tr>
             ))}
