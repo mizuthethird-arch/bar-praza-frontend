@@ -8,6 +8,11 @@ import { Page, PageHeader, Reveal } from '../../ui/Page'
 
 const roleLabel: Record<Role, string> = { owner: 'Titular', kitchen: 'Cocina', bar: 'Barra' }
 
+function memberStatus(member: TeamState['members'][number]) {
+  if (!member.active) return 'Desactivada'
+  return member.invited ? 'Invitada' : 'Activa'
+}
+
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
     <label className="flex items-center justify-between gap-3 text-sm">
@@ -52,11 +57,11 @@ function StaffCard({ team, onChange }: { team: TeamState; onChange: (state: Team
   return (
     <section className={`${card} min-w-0`}>
       <h2 className={sectionTitle}>Personal</h2>
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[420px] border-collapse">
+      <div className="team-table-scroll mt-4 overflow-x-auto">
+        <table className="w-full min-w-[760px] border-collapse">
           <thead>
             <tr className="border-b border-neutral-800">
-              {['Nombre', 'Rol', 'Activo'].map((title) => (
+              {['Nombre', 'Rol', 'Estado', 'PIN', 'Último acceso', 'Dispositivo'].map((title) => (
                 <th key={title} className={headCell}>
                   {title}
                 </th>
@@ -72,14 +77,20 @@ function StaffCard({ team, onChange }: { team: TeamState; onChange: (state: Team
                 <td className={`${bodyCell} font-medium`}>{member.name}</td>
                 <td className={bodyCell}>{roleLabel[member.role]}</td>
                 <td className={bodyCell}>
-                  <input
-                    type="checkbox"
-                    aria-label={`Activo ${member.name}`}
-                    checked={member.active}
-                    onChange={(event) => void run(services.setMemberActive(member.id, event.target.checked), ownerMessage)}
-                    className="size-4 accent-emerald-500"
-                  />
+                  {member.invited ? (
+                    <span className="rounded-full bg-sky-950 px-2 py-0.5 text-xs text-sky-300">Invitada</span>
+                  ) : (
+                    <label className="inline-flex items-center gap-2 whitespace-nowrap">
+                      <input type="checkbox" aria-label={`Activo ${member.name}`} checked={member.active} onChange={(event) => void run(services.setMemberActive(member.id, event.target.checked), ownerMessage)} className="size-4 accent-emerald-500" />
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${member.active ? 'bg-emerald-950 text-emerald-300' : 'bg-neutral-800 text-neutral-300'}`}>
+                        {memberStatus(member)}
+                      </span>
+                    </label>
+                  )}
                 </td>
+                <td className={bodyCell}>{member.pinSet ? 'Sí' : 'No'}</td>
+                <td className={`${bodyCell} whitespace-nowrap text-neutral-300`}>{member.lastAccess ?? 'Nunca'}</td>
+                <td className={`${bodyCell} whitespace-nowrap text-neutral-300`}>{member.device ?? '—'}</td>
                 <td className={`${bodyCell} text-right`}>
                   <button
                     type="button"

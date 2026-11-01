@@ -1,15 +1,31 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import { createDemoServices } from '../../../infrastructure/mock/demo-services'
 import { renderApp } from '../../../test/render-app'
 
 describe('TeamPage', () => {
   it('lists the staff with their roles', async () => {
     renderApp('/ajustes')
 
-    const row = (await screen.findByText('[Uxía]')).closest('tr')!
-    expect(within(row).getByText('Cocina')).toBeInTheDocument()
+    const row = (await screen.findByText('[Titular]')).closest('tr')!
+    expect(within(row).getByText('Titular')).toBeInTheDocument()
+    expect(within(row).getByText('Activa')).toBeInTheDocument()
+    expect(within(row).getByText('Sí')).toBeInTheDocument()
+    expect(within(row).getByText('TABLET BARRA')).toBeInTheDocument()
+    expect(within(row).getByText('Hoy, 09:42')).toBeInTheDocument()
+    const kitchenRow = (await screen.findByText('[Uxía]')).closest('tr')!
+    expect(within(kitchenRow).getByText('Cocina')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Último acceso' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Personal y ajustes' })).toHaveAttribute('href', '/ajustes')
+  })
+
+  it('shows invited and deactivated states as well as active state', async () => {
+    const original = await createDemoServices({ loginDelayMs: 0 }).getTeam()
+    const team = { ...original, members: [{ ...original.members[0], invited: true }, { ...original.members[1], active: false }] }
+    renderApp('/ajustes', { getTeam: () => Promise.resolve(team) })
+    expect(await screen.findByText('Invitada')).toBeInTheDocument()
+    expect(screen.getByText('Desactivada')).toBeInTheDocument()
   })
 
   it('adds a member', async () => {
