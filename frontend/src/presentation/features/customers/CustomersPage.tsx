@@ -90,7 +90,7 @@ export function CustomersPage() {
                   Ninguna pendiente. Si un cliente pide sus datos o que los borres, aparece aquí.
                 </p>
               </div>
-              <button type="button" disabled className={`px-4 py-2 opacity-40 ${outlineButton}`}>
+              <button type="button" disabled className={`px-4 py-2 opacity-40 disabled:cursor-not-allowed ${outlineButton}`}>
                 Ver historial
               </button>
             </section>

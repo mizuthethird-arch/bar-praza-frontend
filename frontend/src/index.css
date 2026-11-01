@@ -24,4 +24,11 @@
     outline: 2px solid var(--color-neutral-100);
     outline-offset: 2px;
   }
+
+  /* Tailwind's base sets buttons to the default arrow cursor. Every button that can be pressed
+     points; a disabled one keeps the not-allowed cursor from its own class. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
 }
