@@ -5,6 +5,10 @@ export type StaffMember = {
   name: string
   role: Role
   active: boolean
+  invited?: boolean
+  pinSet?: boolean
+  lastAccess?: string | null
+  device?: string | null
 }
 
 export type BarSettings = {
