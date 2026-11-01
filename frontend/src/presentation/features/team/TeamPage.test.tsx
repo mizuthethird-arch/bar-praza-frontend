@@ -210,6 +210,28 @@ describe('TeamPage', () => {
     expect(screen.getByText('[Xosé]')).toBeInTheDocument()
   })
 
+  it('sends a password recovery link from the edit pop-up, and says where it went', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Uxía]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Uxía]' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Enviar enlace para cambiar la contraseña' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Enlace enviado a uxia@example.com')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('does not offer a recovery link to a deactivated member', async () => {
+    const user = userEvent.setup()
+    renderApp('/ajustes')
+    await user.click(await screen.findByRole('button', { name: 'Editar [Xosé]' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar · [Xosé]' })
+
+    expect(within(dialog).getByRole('button', { name: 'Enviar enlace para cambiar la contraseña' })).toBeDisabled()
+    expect(within(dialog).getByText('Reactiva a la persona para enviarle el enlace.')).toBeInTheDocument()
+  })
+
   it('never offers to delete a staff member', async () => {
     renderApp('/ajustes')
     await screen.findByText('[Titular]')

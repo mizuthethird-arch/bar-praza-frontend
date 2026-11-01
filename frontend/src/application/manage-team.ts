@@ -18,6 +18,9 @@ export const setMemberPinIn = (team: TeamRepository, id: string, pin: string) =>
 
 export const removeMemberFrom = (team: TeamRepository, id: string) => team.removeMember(id)
 
+// Sends the member a link to choose a new password. The backend sends the email; the link works once.
+export const sendPasswordResetIn = (team: TeamRepository, id: string) => team.sendPasswordReset(id)
+
 export const updateMemberIn = (team: TeamRepository, id: string, changes: { name: string; role: Role }) =>
   team.updateMember(id, changes)
 

@@ -4,6 +4,7 @@ import {
   InvitationError,
   inviteStaff,
   MemberError,
+  passwordResetFor,
   removeMember,
   resendInvitation,
   setMemberActive,
@@ -14,8 +15,8 @@ import {
 } from './team'
 
 const members: StaffMember[] = [
-  { id: 'm1', name: 'Titular', role: 'owner', active: true, pinSet: true, lastAccess: null, device: null },
-  { id: 'm2', name: 'Uxía', role: 'kitchen', active: true, pinSet: false, lastAccess: null, device: null },
+  { id: 'm1', name: 'Titular', email: 'titular@example.com', role: 'owner', active: true, pinSet: true, lastAccess: null, device: null },
+  { id: 'm2', name: 'Uxía', email: 'uxia@example.com', role: 'kitchen', active: true, pinSet: false, lastAccess: null, device: null },
 ]
 
 describe('inviting staff', () => {
@@ -176,6 +177,21 @@ describe('deleting a member', () => {
 
   it('refuses a member that is not there any more', () => {
     expect(() => removeMember(members, 'm9')).toThrow(MemberError)
+  })
+})
+
+describe('sending a password recovery link', () => {
+  it('sends it to an active member, at their email', () => {
+    expect(passwordResetFor(members, 'm2').email).toBe('uxia@example.com')
+  })
+
+  it('does not send it to a deactivated member', () => {
+    const off = setMemberActive(members, 'm2', false)
+    expect(() => passwordResetFor(off, 'm2')).toThrow('Reactiva a la persona antes de enviarle el enlace')
+  })
+
+  it('refuses a member that is not there any more', () => {
+    expect(() => passwordResetFor(members, 'm9')).toThrow(MemberError)
   })
 })
 

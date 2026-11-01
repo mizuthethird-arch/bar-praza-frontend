@@ -51,6 +51,7 @@ export interface AppServices {
   setMemberActive(id: string, active: boolean): Promise<TeamState>
   setMemberPin(id: string, pin: string): Promise<TeamState>
   removeMember(id: string): Promise<TeamState>
+  sendPasswordReset(id: string): Promise<void>
   updateMember(id: string, changes: { name: string; role: Role }): Promise<TeamState>
   saveSettings(settings: BarSettings): Promise<TeamState>
   getKitchenBoard(): Promise<KitchenBoard>

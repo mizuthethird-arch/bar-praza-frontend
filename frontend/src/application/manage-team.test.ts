@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { TeamRepository } from './ports'
-import { inviteMemberTo, removeMemberFrom, saveSettingsIn, setMemberActiveIn, setMemberPinIn } from './manage-team'
+import { inviteMemberTo, removeMemberFrom, saveSettingsIn, sendPasswordResetIn, setMemberActiveIn, setMemberPinIn } from './manage-team'
 
 const repo = (): TeamRepository => {
   const done = vi.fn().mockResolvedValue({ members: [], invitations: [], settings: {} })
-  return { get: vi.fn(), inviteMember: done, setMemberActive: done, setMemberPin: done, removeMember: done, saveSettings: done } as unknown as TeamRepository
+  return { get: vi.fn(), inviteMember: done, setMemberActive: done, setMemberPin: done, removeMember: done, sendPasswordReset: done, saveSettings: done } as unknown as TeamRepository
 }
 
 describe('team use cases', () => {
@@ -14,6 +14,14 @@ describe('team use cases', () => {
     await inviteMemberTo(team, { email: 'a@b.es', role: 'kitchen' })
 
     expect(team.inviteMember).toHaveBeenCalledWith({ email: 'a@b.es', role: 'kitchen' })
+  })
+
+  it('sends a password recovery link through the repository', async () => {
+    const team = repo()
+
+    await sendPasswordResetIn(team, 'm2')
+
+    expect(team.sendPasswordReset).toHaveBeenCalledWith('m2')
   })
 
   it('deletes a member through the repository', async () => {
