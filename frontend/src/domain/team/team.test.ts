@@ -4,7 +4,6 @@ import {
   InvitationError,
   inviteStaff,
   MemberError,
-  removeMember,
   resendInvitation,
   setMemberActive,
   type Invitation,
@@ -130,16 +129,17 @@ describe('editing a staff member', () => {
 })
 
 describe('team rules', () => {
-  it('switches a member on and off', () => {
-    expect(setMemberActive(members, 'm2', false)[1].active).toBe(false)
+  it('deactivates a member, and reactivates them', () => {
+    const off = setMemberActive(members, 'm2', false)
+    expect(off[1].active).toBe(false)
+    expect(setMemberActive(off, 'm2', true)[1].active).toBe(true)
   })
 
-  it('removes a member', () => {
-    expect(removeMember(members, 'm2').map((m) => m.id)).toEqual(['m1'])
+  it('keeps a deactivated member in the list, because staff are never deleted', () => {
+    expect(setMemberActive(members, 'm2', false).map((m) => m.id)).toEqual(['m1', 'm2'])
   })
 
-  it('never removes or deactivates the last active owner', () => {
-    expect(() => removeMember(members, 'm1')).toThrow()
+  it('never deactivates the last active owner', () => {
     expect(() => setMemberActive(members, 'm1', false)).toThrow()
   })
 })

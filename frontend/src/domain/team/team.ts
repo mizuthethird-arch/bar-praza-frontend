@@ -106,14 +106,10 @@ export function updateMember(members: StaffMember[], id: string, { name, role }:
   return members.map((item) => (item.id === id ? { ...item, name: trimmed, role } : item))
 }
 
+// Staff are never deleted. Leaving the bar means deactivating: the person keeps their history and can come back (reactivate).
 export function setMemberActive(members: StaffMember[], id: string, active: boolean): StaffMember[] {
   const next = members.map((member) => (member.id === id ? { ...member, active } : member))
   assertKeepsAnOwner(members, next)
   return next
 }
 
-export function removeMember(members: StaffMember[], id: string): StaffMember[] {
-  const next = members.filter((member) => member.id !== id)
-  assertKeepsAnOwner(members, next)
-  return next
-}

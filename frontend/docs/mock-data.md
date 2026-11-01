@@ -141,7 +141,7 @@ From `mock-team-repository.ts`.
 - Bar settings: name "Bar Praza", phone and address as placeholders, both notifications on.
 
 Try:
-- Invite kitchen or bar staff by email. The invitation lasts 7 days and works once; the owner cannot be invited. Pending invitations are listed below the members, with Reenviar (restarts the 7 days) and Anular (cancels it). Edit a member's name and role (the owner's role stays fixed). Switch a member on or off, or remove one.
+- Invite kitchen or bar staff by email. The invitation lasts 7 days and works once; the owner cannot be invited. Pending invitations are listed below the members, with Reenviar (restarts the 7 days) and Anular (cancels it). Edit a member's name and role (the owner's role stays fixed). Deactivate a member and reactivate them later. Staff are never deleted.
 - Deactivating or removing the only active owner is refused.
 - Saving the settings needs a bar name.
 

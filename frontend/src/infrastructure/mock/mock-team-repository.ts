@@ -2,7 +2,6 @@ import type { TeamRepository } from '../../application/ports'
 import {
   cancelInvitation,
   inviteStaff,
-  removeMember,
   resendInvitation,
   setMemberActive,
   updateMember,
@@ -45,7 +44,6 @@ export function createMockTeamRepository({ now = () => new Date() }: { now?: () 
     resendInvitation: (id) =>
       store.change((state) => ({ ...state, invitations: resendInvitation(state.invitations, id, dayOf(now())) })),
     setMemberActive: (id, active) => changeMembers((members) => setMemberActive(members, id, active)),
-    removeMember: (id) => changeMembers((members) => removeMember(members, id)),
     updateMember: (id, changes) => changeMembers((members) => updateMember(members, id, changes)),
     saveSettings: (settings) => store.change((state) => ({ ...state, settings })),
   }

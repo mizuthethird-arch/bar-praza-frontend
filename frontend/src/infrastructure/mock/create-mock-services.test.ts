@@ -69,7 +69,7 @@ describe('writes from two devices at once', () => {
     const services = createDemoServices({ loginDelayMs: 0, signedIn: true })
 
     await expect(services.cancelOrder('#40')).rejects.toThrow()
-    await expect(services.removeMember('m1')).rejects.toThrow()
+    await expect(services.setMemberActive('m1', false)).rejects.toThrow()
     await expect(services.recordStockMovement({ itemId: 'nope', kind: 'in', amount: 1 })).rejects.toThrow()
   })
 })
