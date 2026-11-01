@@ -265,6 +265,17 @@ describe('TeamPage', () => {
     expect(within(dialog).getByText(/Desconectado el 31\/10\/2026/)).toBeInTheDocument()
   })
 
+  it('shows the roles and permissions read-only, with the undecided rules marked', async () => {
+    renderApp('/ajustes')
+    const region = await screen.findByRole('region', { name: 'Roles y permisos' })
+
+    expect(within(region).getByText('Solo lectura')).toBeInTheDocument()
+    expect(within(region).getAllByText('Por decidir')).toHaveLength(3)
+    expect(within(region).getByText('Si queda otro titular activo')).toBeInTheDocument()
+    expect(within(region).getByText('Su rol no se puede cambiar.')).toBeInTheDocument()
+    expect(within(region).queryByRole('button')).not.toBeInTheDocument()
+  })
+
   it('never offers to delete a staff member', async () => {
     renderApp('/ajustes')
     await screen.findByText('[Titular]')
