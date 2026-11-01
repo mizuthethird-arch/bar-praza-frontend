@@ -39,6 +39,17 @@ describe('playChime', () => {
     expect(oscillator.start).toHaveBeenCalledTimes(2)
   })
 
+  it('plays one chime per new order, each starting after the one before', async () => {
+    const { context, oscillator } = fakeAudio('running')
+    vi.stubGlobal('AudioContext', vi.fn(function () { return context }))
+    const { playChime } = await loadChime()
+
+    playChime(3)
+
+    expect(oscillator.start).toHaveBeenCalledTimes(6)
+    expect(oscillator.start.mock.calls.map(([at]) => at)).toEqual([0, 0.25, 0.7, 0.95, 1.4, 1.65])
+  })
+
   it('makes one audio context and reuses it for every chime', async () => {
     const { context } = fakeAudio('running')
     const constructor = vi.fn(function () { return context })

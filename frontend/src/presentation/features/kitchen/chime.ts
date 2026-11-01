@@ -28,9 +28,13 @@ export async function unlockSound(): Promise<boolean> {
   return isRunning()
 }
 
-// Plays the two notes. Returns false when the browser is holding the sound back, because the page
-// has not been pressed yet. Returns true when it played, or when there is no audio to hold back.
-export function playChime(): boolean {
+// One chime lasts about 0.65 s. Each further chime in a burst starts this many seconds after the last,
+// so every new order is heard as its own chime.
+const CHIME_GAP = 0.7
+
+// Plays one two-note chime per new order. Returns false when the browser is holding the sound back,
+// because the page has not been pressed yet. Returns true when it played, or when there is no audio to hold back.
+export function playChime(count = 1): boolean {
   try {
     const current = audio()
     const running = current.state === 'running'
@@ -47,8 +51,10 @@ export function playChime(): boolean {
       oscillator.start(current.currentTime + at)
       oscillator.stop(current.currentTime + at + 0.4)
     }
-    play(880, 0)
-    play(660, 0.25)
+    for (let order = 0; order < count; order++) {
+      play(880, order * CHIME_GAP)
+      play(660, order * CHIME_GAP + 0.25)
+    }
     return running
   } catch {
     return true
