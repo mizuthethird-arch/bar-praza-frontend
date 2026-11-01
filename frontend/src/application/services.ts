@@ -49,6 +49,7 @@ export interface AppServices {
   markKitchenOrderReady(id: string): Promise<KitchenBoard>
   deliverKitchenOrder(id: string): Promise<KitchenBoard>
   cancelKitchenOrder(id: string): Promise<KitchenBoard>
+  closeKitchenShift(): Promise<KitchenBoard>
   listLiveEvents(): Promise<LiveEvent[]>
   pollLiveEvents(afterId: number): Promise<LiveEvent[]>
 }

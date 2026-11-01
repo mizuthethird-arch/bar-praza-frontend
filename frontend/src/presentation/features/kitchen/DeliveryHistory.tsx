@@ -5,13 +5,10 @@ import { formatEuros } from '../../format/money'
 import { DeliveryDetailDialog } from './DeliveryDetailDialog'
 import { Column, EmptyColumn } from './KitchenColumn'
 
-const triggerId = (id: string) => `delivered-${id}`
-
 // A small green card: number, name, time and price. Tapping it opens the details.
 function DeliveredCard({ order, onOpen }: { order: DeliveredOrder; onOpen: () => void }) {
   return (
     <button
-      id={triggerId(order.id)}
       type="button"
       aria-haspopup="dialog"
       onClick={onOpen}
@@ -34,12 +31,6 @@ export function DeliveryHistory({ delivered }: { delivered: DeliveredOrder[] }) 
   const [openId, setOpenId] = useState<string | null>(null)
   const opened = delivered.find((order) => order.id === openId)
 
-  function close() {
-    const trigger = openId ? document.getElementById(triggerId(openId)) : null
-    setOpenId(null)
-    trigger?.focus()
-  }
-
   return (
     <Column
       title="Entregados y cobrados"
@@ -59,7 +50,7 @@ export function DeliveryHistory({ delivered }: { delivered: DeliveredOrder[] }) 
       </div>
 
       <AnimatePresence>
-        {opened && <DeliveryDetailDialog key={opened.id} order={opened} onClose={close} />}
+        {opened && <DeliveryDetailDialog key={opened.id} order={opened} onClose={() => setOpenId(null)} />}
       </AnimatePresence>
     </Column>
   )

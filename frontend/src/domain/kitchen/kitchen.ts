@@ -29,6 +29,13 @@ export type KitchenBoard = {
   orders: KitchenOrder[]
   // Everything delivered and paid in the current shift, newest first.
   delivered: DeliveredOrder[]
+  // Set once "Cerrar turno" has been confirmed.
+  shiftClosedAt?: string
+}
+
+// Records when the shift was closed. Closing it again keeps the first time.
+export function closeShift(board: KitchenBoard, at: string): KitchenBoard {
+  return board.shiftClosedAt ? board : { ...board, shiftClosedAt: at }
 }
 
 // Minutes past the pickup time of an order that is still not ready; 0 otherwise.

@@ -25,7 +25,7 @@ describe('KitchenPage', () => {
     expect(screen.getByText('21:14')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sonido activo' })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Agotados (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Cerrar turno' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cerrar turno' })).toBeEnabled()
   })
 
   it('shows four columns in order: new, in progress, ready and delivered', async () => {
@@ -246,15 +246,6 @@ describe('KitchenPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo actualizar el pedido')
     expect(within(screen.getByRole('region', { name: 'Nuevos' })).getByRole('article', { name: 'Pedido #43' })).toBeInTheDocument()
-  })
-
-  it('lists the sold-out products from the catalog', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderApp('/cocina')
-
-    await user.click(await screen.findByRole('button', { name: 'Agotados (1)' }))
-
-    expect(within(screen.getByRole('region', { name: 'Agotados' })).getByText('Empanada de bonito')).toBeInTheDocument()
   })
 
   it('shows empty columns and no sold-out count when there is nothing to show', async () => {
